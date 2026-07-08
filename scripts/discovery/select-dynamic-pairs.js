@@ -1,36 +1,42 @@
 #!/usr/bin/env node
 
 /**
- * 🎯 Dynamic Pair Selection
- * 
+ * 🎯 Dynamic Pair Selection (ESM Version)
+ *
  * Automatically selects the best trading pairs based on:
  * - Real-time volume data from Polygon DEXs
  * - Excludes ultra-efficient top pairs
  * - Targets "sweet spot" pairs with volume but less MEV competition
- * 
- * Usage: node scripts/select-dynamic-pairs.js
+ *
+ * Usage: node scripts/discovery/select-dynamic-pairs.js
  */
 
-const https = require('https');
-const fs = require('fs');
+import https from 'https';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// ESM equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Configuration
 const CONFIG = {
   // Exclude top N pairs (too efficient, dominated by MEV bots)
   EXCLUDE_TOP_N: 5,
-  
+
   // Select next N pairs (sweet spot for arbitrage)
   SELECT_NEXT_N: 10,
-  
+
   // Minimum daily volume (USD)
   MIN_VOLUME_USD: 500000, // $500k
-  
+
   // Maximum daily volume (USD) - avoid ultra-high volume
   MAX_VOLUME_USD: 20000000, // $20M
-  
+
   // Minimum liquidity (USD)
   MIN_LIQUIDITY_USD: 300000, // $300k
-  
+
   // Polygon chain ID
   CHAIN_ID: 'polygon',
 };
@@ -54,14 +60,14 @@ async function fetchTopPairs() {
     };
 
     console.log('📊 Fetching live data from DexScreener API...');
-    
+
     const req = https.request(options, (res) => {
       let data = '';
-      
+
       res.on('data', (chunk) => {
         data += chunk;
       });
-      
+
       res.on('end', () => {
         try {
           const json = JSON.parse(data);
@@ -80,11 +86,11 @@ async function fetchTopPairs() {
         }
       });
     });
-    
+
     req.on('error', (e) => {
       reject(e);
     });
-    
+
     req.end();
   });
 }
@@ -94,49 +100,49 @@ async function fetchTopPairs() {
  */
 function filterPairs(pairs) {
   console.log('🔍 Filtering pairs...\n');
-  
+
   // Filter by criteria
   const filtered = pairs.filter(pair => {
     // Must have both tokens
     if (!pair.baseToken || !pair.quoteToken) return false;
-    
+
     // Must have volume and liquidity data
     if (!pair.volume || !pair.liquidity) return false;
-    
+
     const volume24h = parseFloat(pair.volume.h24) || 0;
     const liquidityUsd = parseFloat(pair.liquidity.usd) || 0;
-    
+
     // Apply filters
     if (volume24h < CONFIG.MIN_VOLUME_USD) return false;
     if (volume24h > CONFIG.MAX_VOLUME_USD) return false;
     if (liquidityUsd < CONFIG.MIN_LIQUIDITY_USD) return false;
-    
+
     // Exclude stablecoin-only pairs (too tight spreads)
     const stablecoins = ['USDC', 'USDT', 'DAI', 'USDD', 'FRAX', 'TUSD', 'BUSD'];
     const baseIsStable = stablecoins.includes(pair.baseToken.symbol);
     const quoteIsStable = stablecoins.includes(pair.quoteToken.symbol);
     if (baseIsStable && quoteIsStable) return false;
-    
+
     return true;
   });
-  
-  console.log(`   ✅ ${filtered.length} pairs match criteria`);
-  
+
+  console.log(`  ✅ ${filtered.length} pairs match criteria`);
+
   // Sort by 24h volume (descending)
   const sorted = filtered.sort((a, b) => {
     const volA = parseFloat(a.volume.h24) || 0;
     const volB = parseFloat(b.volume.h24) || 0;
     return volB - volA;
   });
-  
+
   // Skip top N (too efficient)
   const skipped = sorted.slice(CONFIG.EXCLUDE_TOP_N);
-  console.log(`   ⏭️  Skipping top ${CONFIG.EXCLUDE_TOP_N} pairs (too efficient)`);
-  
+  console.log(`  ⏭️  Skipping top ${CONFIG.EXCLUDE_TOP_N} pairs (too efficient)`);
+
   // Take next N
   const selected = skipped.slice(0, CONFIG.SELECT_NEXT_N);
-  console.log(`   🎯 Selected ${selected.length} pairs for arbitrage\n`);
-  
+  console.log(`  🎯 Selected ${selected.length} pairs for arbitrage\n`);
+
   return selected;
 }
 
@@ -149,8 +155,8 @@ function formatPair(pair, index) {
   const volume = (parseFloat(pair.volume.h24) / 1000000).toFixed(2); // in millions
   const liquidity = (parseFloat(pair.liquidity.usd) / 1000000).toFixed(2);
   const dex = pair.dexId || 'unknown';
-  
-  return `   ${index + 1}. ${base}/${quote} | Vol: $${volume}M | Liq: $${liquidity}M | ${dex}`;
+
+  return `  ${index + 1}. ${base}/${quote} | Vol: $${volume}M | Liq: $${liquidity}M | ${dex}`;
 }
 
 /**
@@ -167,69 +173,69 @@ function getTokenAddress(symbol, configContent) {
  */
 function updateConfig(selectedPairs) {
   console.log('📝 Updating config file...\n');
-  
-  const configPath = 'src/config.ts';
+
+  const configPath = path.join(__dirname, '..', '..', 'src', 'config.ts');
   let config = fs.readFileSync(configPath, 'utf8');
-  
+
   // Disable all current pairs
   config = config.replace(/enabled: true/g, 'enabled: false');
-  
+
   let updatedCount = 0;
   let missingTokens = [];
-  
+
   selectedPairs.forEach((pair, index) => {
     const base = pair.baseToken.symbol;
     const quote = pair.quoteToken.symbol;
-    
+
     // Check if tokens exist in config
     const baseAddr = getTokenAddress(base, config);
     const quoteAddr = getTokenAddress(quote, config);
-    
+
     if (!baseAddr) {
       missingTokens.push(base);
     }
     if (!quoteAddr) {
       missingTokens.push(quote);
     }
-    
+
     // Try to enable the pair (both directions)
     const pair1 = `${base}/${quote}`;
     const pair2 = `${quote}/${base}`;
-    
+
     let enabled = false;
-    
+
     [pair1, pair2].forEach(pairName => {
       const regex = new RegExp(
         `(name: "${pairName.replace('/', '\\/')}"[\\s\\S]{0,250}?enabled: )false`,
         ''
       );
-      
+
       if (regex.test(config)) {
         config = config.replace(regex, '$1true');
-        console.log(`   ✅ Enabled: ${pairName}`);
+        console.log(`  ✅ Enabled: ${pairName}`);
         updatedCount++;
         enabled = true;
       }
     });
-    
+
     if (!enabled && baseAddr && quoteAddr) {
-      console.log(`   ⚠️  ${pair1} - Pair exists but not in config (can be added)`);
+      console.log(`  ⚠️  ${pair1} - Pair exists but not in config (can be added)`);
     } else if (!enabled) {
-      console.log(`   ❌ ${pair1} - Missing token addresses`);
+      console.log(`  ❌ ${pair1} - Missing token addresses`);
     }
   });
-  
+
   fs.writeFileSync(configPath, config);
-  
+
   console.log(`\n📊 Summary:`);
-  console.log(`   ✅ Enabled: ${updatedCount} pairs`);
-  
+  console.log(`  ✅ Enabled: ${updatedCount} pairs`);
+
   if (missingTokens.length > 0) {
     const unique = [...new Set(missingTokens)];
-    console.log(`   ⚠️  Missing tokens: ${unique.join(', ')}`);
+    console.log(`  ⚠️  Missing tokens: ${unique.join(', ')}`);
     console.log(`\n💡 Tip: Add missing token addresses to config.tokens{}`);
   }
-  
+
   console.log(`\n✅ Config updated successfully!`);
   console.log(`💰 Estimated API usage: ${updatedCount * 10}M compute units/day\n`);
 }
@@ -252,23 +258,23 @@ async function main() {
   try {
     // Fetch data
     const allPairs = await fetchTopPairs();
-    
+
     // Filter and select
     const selectedPairs = filterPairs(allPairs);
-    
+
     // Display results
     displayPairs(selectedPairs);
-    
+
     // Update config
     updateConfig(selectedPairs);
-    
+
     console.log('═══════════════════════════════════════════');
     console.log('✨ Next steps:');
-    console.log('   1. Run: npm run build');
-    console.log('   2. Run: npm run bot');
-    console.log('   3. Monitor for arbitrage opportunities!');
+    console.log('  1. Run: npm run build');
+    console.log('  2. Run: npm run bot');
+    console.log('  3. Monitor for arbitrage opportunities!');
     console.log('═══════════════════════════════════════════\n');
-    
+
   } catch (error) {
     console.error('\n❌ Error:', error.message);
     console.error('\n💡 Fallback: Manually select pairs or try again later\n');
@@ -276,9 +282,12 @@ async function main() {
   }
 }
 
-// Run if called directly
-if (require.main === module) {
+// ESM equivalent of require.main === module
+const isMainModule = import.meta.url === `file://${process.argv[1]}` || 
+                     process.argv[1]?.endsWith('select-dynamic-pairs.js');
+
+if (isMainModule) {
   main();
 }
 
-module.exports = { fetchTopPairs, filterPairs };
+export { fetchTopPairs, filterPairs, main };
