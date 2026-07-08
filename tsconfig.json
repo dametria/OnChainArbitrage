@@ -1,8 +1,9 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "commonjs",
-    "lib": ["ES2020"],
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
     "outDir": "./dist",
     "rootDir": "./",
     "strict": true,
@@ -10,23 +11,21 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "moduleResolution": "node",
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
     "types": ["node", "mocha", "chai"],
     "typeRoots": ["./node_modules/@types", "./typechain-types"]
   },
-  "include": ["./src/**/*"],
+  "include": ["./src/**/*", "./scripts/**/*", "./test/**/*"],
   "exclude": [
     "node_modules",
     "dist",
     "cache",
-    "artifacts",
-    "scripts/check-balance.ts",
-    "scripts/check-sepolia-balance.ts",
-    "scripts/deploy.ts",
-    "scripts/verify-deployment.ts",
-    "test/**/*"
-  ]
+    "artifacts"
+  ],
+  "ts-node": {
+    "esm": true,
+    "experimentalSpecifierResolution": "node"
+  }
 }
