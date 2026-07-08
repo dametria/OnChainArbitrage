@@ -1,5 +1,13 @@
+// BEFORE (CommonJS style):
+// import { expect } from "chai";
+// import { ethers } from "hardhat";
+
+// AFTER (ESM - already compatible):
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import { FlashLoanArbitrage } from "../typechain-types";
+
+// Tests remain the same
 
 describe("FlashLoanArbitrage - Basic Setup", function () {
   it("Should compile successfully", async function () {
