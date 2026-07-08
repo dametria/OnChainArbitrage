@@ -45,9 +45,6 @@
   },
   "devDependencies": {
     "hardhat": "^3.0.0",
-    "hardhat-toolbox": "^3.0.0",
-    "@nomicfoundation/hardhat-verify": "^2.0.0",
-    "hardhat-gas-reporter": "^2.0.0",
     "solidity-coverage": "^0.8.14",
     "@typechain/ethers-v6": "^0.5.1",
     "@typechain/hardhat": "^9.1.0",
