@@ -1,12 +1,18 @@
 #!/usr/bin/env node
 
 /**
- * 🎯 Dynamic Pair Selection (Simple Version)
- * 
+ * 🎯 Dynamic Pair Selection (Simple Version) (ESM)
+ *
  * Selects mid-tier pairs with good volume but not dominated by MEV bots
  */
 
-const fs = require('fs');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// ESM equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 console.log('\n🎯 Dynamic Pair Selection for Arbitrage Bot');
 console.log('═══════════════════════════════════════════\n');
@@ -31,7 +37,7 @@ const CURATED_PAIRS = [
   { pair: 'UNI/USDC', volume24h: 7.2, marketCap: 4100, category: 'Top-Tier', rank: 13 },
   { pair: 'POL/WMATIC', volume24h: 7.2, marketCap: 4200, category: 'Top-Tier', rank: 14 },
   { pair: 'CRV/USDC', volume24h: 6.8, marketCap: 520, category: 'Top-Tier', rank: 15 },
-  
+
   // === MID-TIER (Target - Sweet spot for arbitrage!) ===
   { pair: 'LINK/WMATIC', volume24h: 5.8, marketCap: 8500, category: 'Oracle', rank: 16 },
   { pair: 'POL/USDC', volume24h: 5.4, marketCap: 4200, category: 'L2', rank: 17 },
@@ -58,8 +64,8 @@ const CURATED_PAIRS = [
 const excludeTopN = 15;
 const midTierPairs = CURATED_PAIRS.filter(p => p.rank > excludeTopN);
 
-console.log(`   • Excluding top ${excludeTopN} by volume & market cap (ultra-efficient)`);
-console.log(`   • Available mid-tier pairs: ${midTierPairs.length}`);
+console.log(` • Excluding top ${excludeTopN} by volume & market cap (ultra-efficient)`);
+console.log(` • Available mid-tier pairs: ${midTierPairs.length}`);
 
 // Sort remaining by volume (descending)
 const sorted = midTierPairs.sort((a, b) => b.volume24h - a.volume24h);
@@ -68,27 +74,27 @@ const sorted = midTierPairs.sort((a, b) => b.volume24h - a.volume24h);
 const selected = sorted.slice(0, 10);
 
 console.log(`📊 Volume & Market Cap based pair selection:`);
-console.log(`   • Total pairs ranked: ${CURATED_PAIRS.length}`);
-console.log(`   • Excluding top ${excludeTopN} by volume/market cap (ultra-efficient, MEV dominated)`);
-console.log(`   • Mid-tier pool: ${midTierPairs.length} pairs`);
-console.log(`   • Selecting: 10 best mid-tier pairs\n`);
+console.log(` • Total pairs ranked: ${CURATED_PAIRS.length}`);
+console.log(` • Excluding top ${excludeTopN} by volume/market cap (ultra-efficient, MEV dominated)`);
+console.log(` • Mid-tier pool: ${midTierPairs.length} pairs`);
+console.log(` • Selecting: 10 best mid-tier pairs\n`);
 
 console.log('❌ EXCLUDED (Top 15 - too efficient for retail arbitrage):\n');
 CURATED_PAIRS.filter(p => p.rank <= excludeTopN).forEach((item) => {
   const mcap = item.marketCap >= 1000 ? `$${(item.marketCap / 1000).toFixed(0)}B` : `$${item.marketCap}M`;
-  console.log(`   ${item.rank}. ${item.pair.padEnd(15)} | Vol: $${item.volume24h}M | MCap: ${mcap.padStart(7)}`);
+  console.log(` ${item.rank}. ${item.pair.padEnd(15)} | Vol: $${item.volume24h}M | MCap: ${mcap.padStart(7)}`);
 });
 
 console.log('\n✅ SELECTED (Mid-Tier - Best arbitrage opportunities):\n');
 selected.forEach((item, index) => {
   const mcap = item.marketCap >= 1000 ? `$${(item.marketCap / 1000).toFixed(1)}B` : `$${item.marketCap}M`;
-  console.log(`   ${index + 1}. ${item.pair.padEnd(15)} | Vol: $${item.volume24h}M | MCap: ${mcap.padStart(7)} | ${item.category}`);
+  console.log(` ${index + 1}. ${item.pair.padEnd(15)} | Vol: $${item.volume24h}M | MCap: ${mcap.padStart(7)} | ${item.category}`);
 });
 
 // Update config
 console.log('\n📝 Updating config file...\n');
 
-const configPath = 'src/config.ts';
+const configPath = path.join(__dirname, '..', '..', 'src', 'config.ts');
 let config = fs.readFileSync(configPath, 'utf8');
 
 // Disable all pairs
@@ -103,13 +109,13 @@ selected.forEach((item) => {
     `(name: "${pairName.replace('/', '\\/')}"[\\s\\S]{0,250}?enabled: )false`,
     ''
   );
-  
+
   if (regex.test(config)) {
     config = config.replace(regex, '$1true');
-    console.log(`   ✅ ${pairName}`);
+    console.log(` ✅ ${pairName}`);
     enabledCount++;
   } else {
-    console.log(`   ⚠️  ${pairName} (not in config)`);
+    console.log(` ⚠️  ${pairName} (not in config)`);
     missing.push(pairName);
   }
 });
@@ -117,20 +123,30 @@ selected.forEach((item) => {
 fs.writeFileSync(configPath, config);
 
 console.log(`\n📊 Summary:`);
-console.log(`   ✅ Enabled: ${enabledCount} pairs`);
-console.log(`   💰 Est. API usage: ${enabledCount * 10}M/day`);
-console.log(`   💸 Est. cost (Pay-As-You-Go): ~$${(enabledCount * 0.4).toFixed(2)}/day`);
+console.log(` ✅ Enabled: ${enabledCount} pairs`);
+console.log(` 💰 Est. API usage: ${enabledCount * 10}M/day`);
+console.log(` 💸 Est. cost (Pay-As-You-Go): ~$${(enabledCount * 0.4).toFixed(2)}/day`);
 
 if (missing.length > 0) {
   console.log(`\n⚠️  Missing pairs (need to be added):`);
-  missing.forEach(p => console.log(`   • ${p}`));
+  missing.forEach(p => console.log(` • ${p}`));
 }
 
 console.log('\n═══════════════════════════════════════════');
 console.log('✨ Next steps:');
-console.log('   1. Run: npm run build');
-console.log('   2. Run: npm run bot');
-console.log('   3. Watch for real arbitrage opportunities!');
+console.log(' 1. Run: npm run build');
+console.log(' 2. Run: npm run bot');
+console.log(' 3. Watch for real arbitrage opportunities!');
 console.log('═══════════════════════════════════════════\n');
 
 console.log('💡 Tip: Run this script weekly to refresh pairs based on volume\n');
+
+// ESM equivalent of require.main === module
+const isMainModule = import.meta.url === `file://${process.argv[1]}` || 
+                     process.argv[1]?.endsWith('select-pairs-by-volume.js');
+
+if (isMainModule) {
+  // Script ran directly
+}
+
+export { CURATED_PAIRS, selected, midTierPairs };
