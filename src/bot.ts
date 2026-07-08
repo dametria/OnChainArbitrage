@@ -484,8 +484,12 @@ async function main() {
   }
 }
 
-// Run the bot
-if (require.main === module) {
+// ESM equivalent of require.main === module
+// Checks if this file is being run directly (not imported)
+const isMainModule = import.meta.url === `file://${process.argv[1]}` || 
+                     process.argv[1]?.endsWith('bot.ts');
+
+if (isMainModule) {
   main();
 }
 
