@@ -12,8 +12,8 @@
  * - Unlimited pairs (no API rate limit concerns)
  */
 
-const { eventPriceMonitor } = require('../dist/src/eventPriceMonitor');
-const logger = require('../dist/logger').default;
+const { eventPriceMonitor } = require('../src/eventPriceMonitor');
+const logger = require('../logger').default;
 
 async function main() {
   console.log('\n═══════════════════════════════════════════════════════');
