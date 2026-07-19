@@ -13,7 +13,7 @@
  */
 
 const { eventPriceMonitor } = require('../src/eventPriceMonitor');
-const logger = require('../logger').default;
+const logger = require('../src/logger').default;
 
 async function main() {
   console.log('\n═══════════════════════════════════════════════════════');
