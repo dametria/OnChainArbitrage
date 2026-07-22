@@ -24,7 +24,7 @@ export const config = {
       ? (process.env.BSC_RPC_URL || "https://bsc-dataseed.binance.org")
       : process.env.NETWORK === "base"
       ? (process.env.BASE_RPC_URL || "https://mainnet.base.org")
-      : (process.env.POLYGON_RPC_URL || ""),
+      : (process.env.RPC_WSS_URL || ""),
     chainId: process.env.NETWORK === "bsc" ? 56 : process.env.NETWORK === "base" ? 8453 : 137,
   },
 
