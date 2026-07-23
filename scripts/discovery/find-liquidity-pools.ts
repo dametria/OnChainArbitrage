@@ -6,7 +6,7 @@
  */
 
 import { ethers } from "ethers";
-import { config } from "../src/config";
+import { config } from "../../src/config";
 
 // Uniswap V2 Factory ABI (minimal - just what we need)
 const FACTORY_ABI = [

@@ -12,8 +12,13 @@
  * - Unlimited pairs (no API rate limit concerns)
  */
 
+<<<<<<< Updated upstream
 const { eventPriceMonitor } = require('../src/eventPriceMonitor');
 const logger = require('../src/logger').default;
+=======
+const { EventPriceMonitor } = require('../src/eventPriceMonitor.ts');
+const logger = require('../src/logger.ts').default;
+>>>>>>> Stashed changes
 
 async function main() {
   console.log('\n═══════════════════════════════════════════════════════');

@@ -119,7 +119,15 @@ ${colors.bright}═════════════════════�
 function launchChain(chain) {
   log(chain.name, `Starting ${chain.displayName} monitoring...`);
   
-  const monitorScript = path.join(__dirname, '..', 'src', 'eventPriceMonitor.ts');
+  const monitorScript = path.join(process.cwd(), 'src', 'eventPriceMonitor.ts');
+
+const child = spawn('node', [
+  '--loader', 'ts-node/esm',
+  monitorScript
+], {
+  stdio: 'inherit',
+  shell: false   // ← important for security
+});
   
   // Check if script exists
   if (!fs.existsSync(monitorScript)) {

@@ -11,7 +11,7 @@
  */
 
 import { ethers } from 'ethers';
-import config from '../src/config';
+import config from '../../src/config.ts';
 import fs from 'fs';
 import path from 'path';
 

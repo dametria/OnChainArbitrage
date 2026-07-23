@@ -25,7 +25,7 @@ const CHAINS = [
     name: 'Polygon',
     network: 'polygon',
     rpc: process.env.POLYGON_RPC_URL,
-    wss: process.env.POLYGON_WSS_URL,
+    wss: process.env.RPC_WSS_URL,
     chainId: 137,
     icon: '🟣',
     color: colors.magenta,

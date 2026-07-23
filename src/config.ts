@@ -31,7 +31,7 @@ export const config = {
   // Contract addresses
   contracts: {
     // YOUR deployed FlashLoanArbitrage contract on Polygon mainnet! ✅
-    flashLoanArbitrage: process.env.CONTRACT_ADDRESS || "0x671A158DA6248e965698726ebb5e3512AF171Af3",
+    flashLoanArbitrage: process.env.CONTRACT_ADDRESS || "0xF5DE7efa7D2eEc0907bE81FB7Ed4d36aDf1FdC06",
     
     // Aave V3 addresses on Polygon mainnet
     aavePoolAddressProvider: "0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb",
@@ -375,11 +375,11 @@ export const config = {
 
     // Maximum trade size (in USD equivalent)
     // SMALL TRADE STRATEGY: $500 max - reduces slippage significantly
-    maxTradeSize: parseInt(process.env.MAX_TRADE_SIZE_USD || "500", 10),
+    maxTradeSize: parseInt(process.env.MAX_TRADE_SIZE_USD || "1000", 10),
 
     // Minimum trade size (in USD equivalent)
     // LOWERED to $100 to allow smaller, more frequent trades
-    minTradeSize: parseInt(process.env.MIN_TRADE_SIZE_USD || "100", 10),
+    minTradeSize: parseInt(process.env.MIN_TRADE_SIZE_USD || "200",10 ),
 
     // Slippage tolerance (in basis points)
     // 150 bps = 1.5% slippage tolerance (INCREASED for better execution rate)
@@ -391,7 +391,7 @@ export const config = {
     // Minimum pool liquidity (in USD)
     // LOWERED to $1000 to access more pools while still filtering dead pools
     minPoolLiquidity: parseInt(process.env.MIN_POOL_LIQUIDITY || "1000", 10),
-    
+
     // Execution slippage buffer (NEW) - adds buffer to account for real execution
     // 20 bps = 0.2% additional buffer on top of detected spread
     executionSlippageBuffer: parseInt(process.env.EXECUTION_SLIPPAGE_BPS || "20", 10),
@@ -403,7 +403,7 @@ export const config = {
   monitoring: {
     // How often to check prices (in milliseconds)
     // 1000ms = check every 1 second
-    priceCheckInterval: 1000,
+    priceCheckInterval: 2400,
 
     // Pairs to monitor for arbitrage (Polygon pairs)
     // HIGH-LIQUIDITY STRATEGY: 20 verified high-liquidity pairs
@@ -411,137 +411,474 @@ export const config = {
     // ADDED: 3 new V3 pairs (WETH/AAVE, WETH/SUSHI, WETH/GHST) with massive liquidity
     // REMOVED: 29 low-liquidity pairs that showed <$5k pools consistently
     // REMOVED: Dfyn and ApeSwap DEXes (showed pools <$500 liquidity)
-    // REMOVED: 3 stablecoin pairs (USDC/USDT, USDC/DAI, USDT/DAI - low profit potential)
-    watchedPairs: [
-      // === TIER 1: HIGHEST LIQUIDITY PAIRS (>$50M TVL) ===
       // These pairs have deep liquidity on QuickSwap and/or Uniswap V3
+        watchedPairs: [
       {
-        name: "WMATIC/DAI",
-        token0: "WMATIC",
-        token1: "DAI",
-        enabled: false, // ❌ DISABLED - Showed fake pools with 8258% spread
-      },
-      {
-        name: "MAI/USDC",
-        token0: "MAI",
-        token1: "USDC",
-        enabled: false, // ❌ DISABLED - Stablecoin pair
-      },
-      {
-        name: "WMATIC/USDT",
-        token0: "WMATIC",
-        token1: "USDT",
-        enabled: false, // ❌ DISABLED - Showed fake pools with 281% spread
-      },
-      {
-        name: "WMATIC/USDC",
-        token0: "WMATIC",
-        token1: "USDC",
-        enabled: true, // ✅ HIGH-LIQUIDITY - Native token vs stablecoin, top volume pair
-      },
-      {
-        name: "DAI/USDC",
-        token0: "DAI",
-        token1: "USDC",
-        enabled: false, // ❌ DISABLED - Stablecoin pair
-      },
-      {
-        name: "WMATIC/WETH",
-        token0: "WMATIC",
-        token1: "WETH",
-        enabled: true, // ✅ HIGH-LIQUIDITY - Top volume crypto pair on Polygon
-      },
-      
-      // === NEW HIGH-LIQUIDITY PAIRS (Discovered via script) ===
-      {
-        name: "USDC/WETH",
-        token0: "USDC",
-        token1: "WETH",
-        enabled: true, // ✅ $1.67M liquidity, $836k volume
-      },
-      {
-        name: "USDC/WBTC",
-        token0: "USDC",
-        token1: "WBTC",
-        enabled: true, // ✅ $109M liquidity, $54M volume
-      },
-      {
-        name: "USDC/CRV",
-        token0: "USDC",
-        token1: "CRV",
-        enabled: true, // ✅ $7.2M liquidity, $3.6M volume
-      },
-      {
-        name: "USDC/SUSHI",
-        token0: "USDC",
-        token1: "SUSHI",
-        enabled: true, // ✅ $469M liquidity, $234M volume
-      },
-      {
-        name: "USDT/WMATIC",
-        token0: "USDT",
+        name: "WBTC/WMATIC",
+        token0: "WBTC",
         token1: "WMATIC",
-        enabled: true, // ✅ $231M liquidity, $115M volume
+        enabled: true , // ⭐⭐⭐
       },
       {
-        name: "USDT/WETH",
-        token0: "USDT",
+        name: "WBTC/USDC",
+        token0: "WBTC",
+        token1: "USDC",
+        enabled: true , // ⭐⭐⭐
+      },
+      {
+        name: "WBTC/WETH",
+        token0: "WBTC",
         token1: "WETH",
-        enabled: true, // ✅ $21.4M liquidity, $10.7M volume
+        enabled: true , // ⭐⭐⭐
       },
       {
-        name: "USDT/LINK",
-        token0: "USDT",
-        token1: "LINK",
-        enabled: true, // ✅ $1.68B liquidity, $841M volume (MASSIVE!)
+        name: "WBTC/USDT",
+        token0: "WBTC",
+        token1: "USDT",
+        enabled: true , // ⭐⭐⭐
       },
       {
-        name: "USDT/CRV",
-        token0: "USDT",
-        token1: "CRV",
-        enabled: true, // ✅ $75.8M liquidity, $37.9M volume
-      },
-      {
-        name: "USDT/SUSHI",
-        token0: "USDT",
-        token1: "SUSHI",
-        enabled: true, // ✅ $61.3M liquidity, $30.6M volume
-      },
-      {
-        name: "USDT/GHST",
-        token0: "USDT",
-        token1: "GHST",
-        enabled: true, // ✅ $160M liquidity, $80M volume
-      },
-      {
-        name: "WETH/LINK",
-        token0: "WETH",
-        token1: "LINK",
-        enabled: true, // ✅ $26.7M liquidity, $13.3M volume
-      },
-      {
-        name: "WETH/CRV",
-        token0: "WETH",
-        token1: "CRV",
-        enabled: true, // ✅ $140M liquidity, $70M volume
+        name: "DAI/WMATIC",
+        token0: "DAI",
+        token1: "WMATIC",
+        enabled: true , // ⭐⭐⭐
       },
       {
         name: "DAI/WETH",
         token0: "DAI",
         token1: "WETH",
-        enabled: true, // ✅ $97k liquidity (existing pair, keep)
+        enabled: true , // ⭐⭐⭐
+      },
+
+      // === TIER 2: MAJOR DEFI (High Priority) ===
+      {
+        name: "LINK/WMATIC",
+        token0: "LINK",
+        token1: "WMATIC",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "LINK/USDC",
+        token0: "LINK",
+        token1: "USDC",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "LINK/WETH",
+        token0: "LINK",
+        token1: "WETH",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "LINK/USDT",
+        token0: "LINK",
+        token1: "USDT",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "AAVE/WMATIC",
+        token0: "AAVE",
+        token1: "WMATIC",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "AAVE/USDC",
+        token0: "AAVE",
+        token1: "USDC",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "AAVE/WETH",
+        token0: "AAVE",
+        token1: "WETH",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "AAVE/USDT",
+        token0: "AAVE",
+        token1: "USDT",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "UNI/WMATIC",
+        token0: "UNI",
+        token1: "WMATIC",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "UNI/USDC",
+        token0: "UNI",
+        token1: "USDC",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "UNI/WETH",
+        token0: "UNI",
+        token1: "WETH",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "UNI/USDT",
+        token0: "UNI",
+        token1: "USDT",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "CRV/WMATIC",
+        token0: "CRV",
+        token1: "WMATIC",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "CRV/USDC",
+        token0: "CRV",
+        token1: "USDC",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "CRV/WETH",
+        token0: "CRV",
+        token1: "WETH",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "CRV/USDT",
+        token0: "CRV",
+        token1: "USDT",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "SUSHI/WMATIC",
+        token0: "SUSHI",
+        token1: "WMATIC",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "SUSHI/USDC",
+        token0: "SUSHI",
+        token1: "USDC",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "SUSHI/WETH",
+        token0: "SUSHI",
+        token1: "WETH",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "SUSHI/USDT",
+        token0: "SUSHI",
+        token1: "USDT",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "BAL/WMATIC",
+        token0: "BAL",
+        token1: "WMATIC",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "BAL/USDC",
+        token0: "BAL",
+        token1: "USDC",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "BAL/WETH",
+        token0: "BAL",
+        token1: "WETH",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "BAL/USDT",
+        token0: "BAL",
+        token1: "USDT",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "COMP/WMATIC",
+        token0: "COMP",
+        token1: "WMATIC",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "COMP/USDC",
+        token0: "COMP",
+        token1: "USDC",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "COMP/WETH",
+        token0: "COMP",
+        token1: "WETH",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "COMP/USDT",
+        token0: "COMP",
+        token1: "USDT",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "MKR/WMATIC",
+        token0: "MKR",
+        token1: "WMATIC",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "MKR/USDC",
+        token0: "MKR",
+        token1: "USDC",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "MKR/WETH",
+        token0: "MKR",
+        token1: "WETH",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "MKR/USDT",
+        token0: "MKR",
+        token1: "USDT",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "SNX/WMATIC",
+        token0: "SNX",
+        token1: "WMATIC",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "SNX/USDC",
+        token0: "SNX",
+        token1: "USDC",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "SNX/WETH",
+        token0: "SNX",
+        token1: "WETH",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "SNX/USDT",
+        token0: "SNX",
+        token1: "USDT",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "YFI/WMATIC",
+        token0: "YFI",
+        token1: "WMATIC",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "YFI/USDC",
+        token0: "YFI",
+        token1: "USDC",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "YFI/WETH",
+        token0: "YFI",
+        token1: "WETH",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "YFI/USDT",
+        token0: "YFI",
+        token1: "USDT",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "SAND/WMATIC",
+        token0: "SAND",
+        token1: "WMATIC",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "SAND/USDC",
+        token0: "SAND",
+        token1: "USDC",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "SAND/WETH",
+        token0: "SAND",
+        token1: "WETH",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "SAND/USDT",
+        token0: "SAND",
+        token1: "USDT",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "MANA/WMATIC",
+        token0: "MANA",
+        token1: "WMATIC",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "MANA/USDC",
+        token0: "MANA",
+        token1: "USDC",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "MANA/WETH",
+        token0: "MANA",
+        token1: "WETH",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "MANA/USDT",
+        token0: "MANA",
+        token1: "USDT",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "GHST/WMATIC",
+        token0: "GHST",
+        token1: "WMATIC",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "GHST/USDC",
+        token0: "GHST",
+        token1: "USDC",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "GHST/WETH",
+        token0: "GHST",
+        token1: "WETH",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "GHST/USDT",
+        token0: "GHST",
+        token1: "USDT",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "POL/WMATIC",
+        token0: "POL",
+        token1: "WMATIC",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "POL/USDC",
+        token0: "POL",
+        token1: "USDC",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "POL/WETH",
+        token0: "POL",
+        token1: "WETH",
+        enabled: true , // ⭐⭐
+      },
+      {
+        name: "POL/USDT",
+        token0: "POL",
+        token1: "USDT",
+        enabled: true , // ⭐⭐
+      }
+      }
+    ],
+      
+      // === NEW HIGH-LIQUIDITY PAIRS (Discovered via script) ===
+      {
+        token0: "USDC",
+        token1: "WETH",
+        enabled: false, // ✅ $1.67M liquidity, $836k volume
+      },
+      {
+        name: "USDC/WBTC",
+        token0: "USDC",
+        token1: "WBTC",
+        enabled: false, // ✅ $109M liquidity, $54M volume
+      },
+      {
+        name: "USDC/CRV",
+        token0: "USDC",
+        token1: "CRV",
+        enabled: false, // ✅ $7.2M liquidity, $3.6M volume
+      },
+      {
+        name: "USDC/SUSHI",
+        token0: "USDC",
+        token1: "SUSHI",
+        enabled: false, // ✅ $469M liquidity, $234M volume
+      },
+      {
+        name: "USDT/WMATIC",
+        token0: "USDT",
+        token1: "WMATIC",
+        enabled: false, // ✅ $231M liquidity, $115M volume
+      },
+      {
+        name: "USDT/WETH",
+        token0: "USDT",
+        token1: "WETH",
+        enabled: false, // ✅ $21.4M liquidity, $10.7M volume
+      },
+      {
+        name: "USDT/LINK",
+        token0: "USDT",
+        token1: "LINK",
+        enabled: false, // ✅ $1.68B liquidity, $841M volume (MASSIVE!)
+      },
+      {
+        name: "USDT/CRV",
+        token0: "USDT",
+        token1: "CRV",
+        enabled: false, // ✅ $75.8M liquidity, $37.9M volume
+      },
+      {
+        name: "USDT/SUSHI",
+        token0: "USDT",
+        token1: "SUSHI",
+        enabled: false, // ✅ $61.3M liquidity, $30.6M volume
+      },
+      {
+        name: "USDT/GHST",
+        token0: "USDT",
+        token1: "GHST",
+        enabled: false, // ✅ $160M liquidity, $80M volume
+      },
+      {
+        name: "WETH/LINK",
+        token0: "WETH",
+        token1: "LINK",
+        enabled: false, // ✅ $26.7M liquidity, $13.3M volume
+      },
+      {
+        name: "WETH/CRV",
+        token0: "WETH",
+        token1: "CRV",
+        enabled: false, // ✅ $140M liquidity, $70M volume
+      },
+      {
+        name: "DAI/WETH",
+        token0: "DAI",
+        token1: "WETH",
+        enabled: false, // ✅ $97k liquidity (existing pair, keep)
       },
       {
         name: "DAI/WBTC",
         token0: "DAI",
         token1: "WBTC",
-        enabled: true, // ✅ Large liquidity (existing pair, keep)
+        enabled: false, // ✅ Large liquidity (existing pair, keep)
       },
       {
         name: "WETH/WBTC",
         token0: "WETH",
         token1: "WBTC",
-        enabled: true, // ✅ Crypto majors (existing pair, keep)
+        enabled: false, // ✅ Crypto majors (existing pair, keep)
       },
       
       // === NEW V3 PAIRS (Discovered via V3 subgraph) ===
@@ -549,19 +886,19 @@ export const config = {
         name: "WETH/AAVE",
         token0: "WETH",
         token1: "AAVE",
-        enabled: true, // ✅ $2.1M liquidity, $43M volume (SushiSwap + Uniswap V3)
+        enabled: false, // ✅ $2.1M liquidity, $43M volume (SushiSwap + Uniswap V3)
       },
       {
         name: "WETH/SUSHI",
         token0: "WETH",
         token1: "SUSHI",
-        enabled: true, // ✅ $23.6M liquidity, $13.6M volume (SushiSwap + Uniswap V3)
+        enabled: false, // ✅ $23.6M liquidity, $13.6M volume (SushiSwap + Uniswap V3)
       },
       {
         name: "WETH/GHST",
         token0: "WETH",
         token1: "GHST",
-        enabled: true, // ✅ $175M liquidity, $87.8M volume (QuickSwap + Uniswap V3) - MASSIVE!
+        enabled: false, // ✅ $175M liquidity, $87.8M volume (QuickSwap + Uniswap V3) - MASSIVE!
       },
       
       // === DISABLED: GHST and other low-liquidity gaming/DeFi tokens ===
@@ -569,7 +906,7 @@ export const config = {
         name: "GHST/USDC",
         token0: "GHST",
         token1: "USDC",
-        enabled: false, // ❌ DISABLED - Showed fake pools with 324% spread
+        enabled: true, // ❌ DISABLED - Showed fake pools with 324% spread
       },
       
       // === DISABLED: TOP 15 TOKENS (Avoiding MEV competition) ===
@@ -615,7 +952,7 @@ export const config = {
         name: "LINK/WMATIC",
         token0: "LINK",
         token1: "WMATIC",
-        enabled: false, // ❌ LINK is #3 in top 15 + 22.35% spread fake pool!
+        enabled: true, // ❌ LINK is #3 in top 15 + 22.35% spread fake pool!
       },
       
       // === AAVE PAIRS - TOP 15 TOKEN (#6) ===
@@ -635,7 +972,7 @@ export const config = {
         name: "AAVE/WMATIC",
         token0: "AAVE",
         token1: "WMATIC",
-        enabled: false, // ❌ AAVE is #6 in top 15 + 6.94% spread suspicious
+        enabled: true, // ❌ AAVE is #6 in top 15 + 6.94% spread suspicious
       },
       
       // === UNI PAIRS - TOP 15 TOKEN (#5) ===
@@ -655,7 +992,7 @@ export const config = {
         name: "UNI/WMATIC",
         token0: "UNI",
         token1: "WMATIC",
-        enabled: false, // ❌ UNI is #5 in top 15 + 99.87% spread fake pool!
+        enabled: true, // ❌ UNI is #5 in top 15 + 99.87% spread fake pool!
       },
       
       // === STABLECOIN PAIRS ===
@@ -709,13 +1046,13 @@ export const config = {
         name: "SAND/USDC",
         token0: "SAND",
         token1: "USDC",
-        enabled: false, // ❌ SAND is #10 in top 15 + 13675% spread fake pool!
+        enabled: true, // ❌ SAND is #10 in top 15 + 13675% spread fake pool!
       },
       {
         name: "MANA/USDC",
         token0: "MANA",
         token1: "USDC",
-        enabled: false, // ❌ MANA is #11 in top 15 + 14.23% spread fake pool!
+        enabled: true, // ❌ MANA is #11 in top 15 + 14.23% spread fake pool!
       },
       {
         name: "SAND/WMATIC",
@@ -735,7 +1072,7 @@ export const config = {
         name: "SUSHI/WMATIC",
         token0: "SUSHI",
         token1: "WMATIC",
-        enabled: false, // ❌ DISABLED - Showed <$500 liquidity in tests
+        enabled: true, // ❌ DISABLED - Showed <$500 liquidity in tests
       },
       {
         name: "CRV/WMATIC",
@@ -767,13 +1104,13 @@ export const config = {
         name: "POL/USDC",
         token0: "POL",
         token1: "USDC",
-        enabled: false, // ❌ POL is #1 in top 15 ($2B market cap) + No pools on either DEX!
+        enabled: true, // ❌ POL is #1 in top 15 ($2B market cap) + No pools on either DEX!
       },
       {
         name: "QUICK/WMATIC",
         token0: "QUICK",
         token1: "WMATIC",
-        enabled: false, // ❌ No SushiSwap pool!
+        enabled: true, // ❌ No SushiSwap pool!
       },
       
       // === NEW PAIRS - SCALING UP! ===
@@ -852,13 +1189,13 @@ export const config = {
         name: "WMATIC/LINK",
         token0: "WMATIC",
         token1: "LINK",
-        enabled: false, // ⚠️ OPTIONAL - LINK is top 15 (#3) but has good liquidity
+        enabled: true, // ⚠️ OPTIONAL - LINK is top 15 (#3) but has good liquidity
       },
       {
         name: "WMATIC/AAVE",
         token0: "WMATIC",
         token1: "AAVE",
-        enabled: false, // ⚠️ OPTIONAL - AAVE is top 15 (#6) but has good liquidity
+        enabled: true, // ⚠️ OPTIONAL - AAVE is top 15 (#6) but has good liquidity
       },
       
       // WETH pairs (expanding coverage)
@@ -872,13 +1209,13 @@ export const config = {
         name: "WETH/LINK",
         token0: "WETH",
         token1: "LINK",
-        enabled: false, // ⚠️ OPTIONAL - LINK is top 15 but ETH pair has volume
+        enabled: true, // ⚠️ OPTIONAL - LINK is top 15 but ETH pair has volume
       },
       {
         name: "WETH/AAVE",
         token0: "WETH",
         token1: "AAVE",
-        enabled: false, // ⚠️ OPTIONAL - AAVE is top 15 but ETH pair has volume
+        enabled: true, // ⚠️ OPTIONAL - AAVE is top 15 but ETH pair has volume
       },
       {
         name: "WETH/CRV",
@@ -1004,37 +1341,37 @@ export const config = {
         name: "CAKE/WBNB",
         token0: "CAKE",
         token1: "WBNB",
-        enabled: true, // ✅ PancakeSwap / BNB - Very active
+        enabled: false, // ✅ PancakeSwap / BNB - Very active
       },
       {
         name: "CAKE/USDT",
         token0: "CAKE",
         token1: "USDT",
-        enabled: true, // ✅ PancakeSwap / USDT
+        enabled: false, // ✅ PancakeSwap / USDT
       },
       {
         name: "BANANA/WBNB",
         token0: "BANANA",
         token1: "WBNB",
-        enabled: true, // ✅ ApeSwap / BNB
+        enabled: false, // ✅ ApeSwap / BNB
       },
       {
         name: "UNI/WBNB",
         token0: "UNI",
         token1: "WBNB",
-        enabled: true, // ✅ Uniswap / BNB
+        enabled: false, // ✅ Uniswap / BNB
       },
       {
         name: "LINK/WBNB",
         token0: "LINK",
         token1: "WBNB",
-        enabled: true, // ✅ Chainlink / BNB
+        enabled: false, // ✅ Chainlink / BNB
       },
       {
         name: "AAVE/WBNB",
         token0: "AAVE",
         token1: "WBNB",
-        enabled: true, // ✅ Aave / BNB
+        enabled: false, // ✅ Aave / BNB
       },
       
       // === TIER 4: GAMING TOKENS ===
@@ -1042,13 +1379,13 @@ export const config = {
         name: "AXS/WBNB",
         token0: "AXS",
         token1: "WBNB",
-        enabled: true, // ✅ Axie Infinity / BNB
+        enabled: false, // ✅ Axie Infinity / BNB
       },
       {
         name: "GALA/WBNB",
         token0: "GALA",
         token1: "WBNB",
-        enabled: true, // ✅ Gala Games / BNB
+        enabled: false, // ✅ Gala Games / BNB
       },
       
       // === TIER 5: LAYER 1 TOKENS ===
@@ -1056,19 +1393,19 @@ export const config = {
         name: "ADA/WBNB",
         token0: "ADA",
         token1: "WBNB",
-        enabled: true, // ✅ Cardano / BNB
+        enabled: false, // ✅ Cardano / BNB
       },
       {
         name: "DOT/WBNB",
         token0: "DOT",
         token1: "WBNB",
-        enabled: true, // ✅ Polkadot / BNB
+        enabled: false, // ✅ Polkadot / BNB
       },
       {
         name: "MATIC/WBNB",
         token0: "MATIC",
         token1: "WBNB",
-        enabled: true, // ✅ Polygon / BNB
+        enabled: false, // ✅ Polygon / BNB
       },
       
       // === NO STABLECOIN-VS-STABLECOIN PAIRS ===
@@ -1091,25 +1428,25 @@ export const config = {
         name: "BSWAP/WETH",
         token0: "BSWAP",
         token1: "WETH",
-        enabled: true, // ✅ BaseSwap token / ETH - Base-native DEX token
+        enabled: false, // ✅ BaseSwap token / ETH - Base-native DEX token
       },
       {
         name: "BSWAP/USDC",
         token0: "BSWAP",
         token1: "USDC",
-        enabled: true, // ✅ BaseSwap / USDC - DeFi token vs stablecoin is OK
+        enabled: false, // ✅ BaseSwap / USDC - DeFi token vs stablecoin is OK
       },
       {
         name: "TOSHI/WETH",
         token0: "TOSHI",
         token1: "WETH",
-        enabled: true, // ✅ Toshi / ETH - Base community token
+        enabled: false, // ✅ Toshi / ETH - Base community token
       },
       {
         name: "TOSHI/USDC",
         token0: "TOSHI",
         token1: "USDC",
-        enabled: true, // ✅ Toshi / USDC - Community token vs stablecoin
+        enabled: false, // ✅ Toshi / USDC - Community token vs stablecoin
       },
       
       // === TIER 2: MAJOR DEFI TOKENS ===
@@ -1117,37 +1454,37 @@ export const config = {
         name: "UNI/WETH",
         token0: "UNI",
         token1: "WETH",
-        enabled: true, // ✅ Uniswap / ETH
+        enabled: false, // ✅ Uniswap / ETH
       },
       {
         name: "UNI/USDC",
         token0: "UNI",
         token1: "USDC",
-        enabled: true, // ✅ Uniswap / USDC
+        enabled: false, // ✅ Uniswap / USDC
       },
       {
         name: "LINK/WETH",
         token0: "LINK",
         token1: "WETH",
-        enabled: true, // ✅ Chainlink / ETH
+        enabled: false, // ✅ Chainlink / ETH
       },
       {
         name: "LINK/USDC",
         token0: "LINK",
         token1: "USDC",
-        enabled: true, // ✅ Chainlink / USDC
+        enabled: false, // ✅ Chainlink / USDC
       },
       {
         name: "AAVE/WETH",
         token0: "AAVE",
         token1: "WETH",
-        enabled: true, // ✅ Aave / ETH
+        enabled: false, // ✅ Aave / ETH
       },
       {
         name: "SUSHI/WETH",
         token0: "SUSHI",
         token1: "WETH",
-        enabled: true, // ✅ SushiSwap / ETH
+        enabled: false, // ✅ SushiSwap / ETH
       },
       
       // === TIER 3: WBTC PAIRS (Bitcoin on Base) ===
@@ -1155,7 +1492,7 @@ export const config = {
         name: "WBTC/WETH",
         token0: "WBTC",
         token1: "WETH",
-        enabled: true, // ✅ Bitcoin / ETH - Major pair
+        enabled: false, // ✅ Bitcoin / ETH - Major pair
       },
       {
         name: "WBTC/USDC",
@@ -1175,7 +1512,7 @@ export const config = {
     debugMode: process.env.ENABLE_DEBUG === "true",
     
     // Dry run mode (simulate without executing)
-    dryRun: process.env.ENABLE_DRY_RUN === "true",
+    dryRun: process.env.ENABLE_DRY_RUN === "false",
   },
 
   // ============================================================================

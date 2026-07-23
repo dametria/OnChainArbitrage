@@ -15,6 +15,7 @@ async function main() {
     "1": "0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e",     // Ethereum
     "8453": "0xe20fCBdBfFC4Dd138cE8b2E6FBb6CB49777ad64D",   // Base
     "10": "0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb",    // Optimism
+    "56": "0xff75B6da14FfbbfD355Daf7a2731456b3562Ba6D", // BSC
     // Testnets
     "11155111": "0x012bAC54348C0E635dCAc9D5FB99f06F24136C9A", // Ethereum Sepolia
     "80002": "0x0496275d34753A48320CA58103d5220d394FF77F",  // Polygon Amoy

@@ -33,15 +33,22 @@
   "license": "MIT",
   "dependencies": {
     "@aave/core-v3": "^1.19.3",
+    "@eslint/config-array": "^0.23.5",
+    "@eslint/object-schema": "^3.0.5",
     "@openzeppelin/contracts": "^5.0.0",
     "@uniswap/v3-core": "^1.0.1",
     "@uniswap/v3-periphery": "^1.4.3",
-    "dotenv": "^16.3.1",
-    "ethers": "^6.9.0",
-    "ws": "^8.14.2",
     "axios": "^1.6.2",
+<<<<<<< Updated upstream
     "chalk": "^5.3.0",
     "winston": "^3.11.0"
+=======
+    "chalk": "^4.1.2",
+    "dotenv": "^16.3.1",
+    "ethers": "^6.9.0",
+    "winston": "^3.11.0",
+    "ws": "^8.14.2"
+>>>>>>> Stashed changes
   },
   "devDependencies": {
     "hardhat": "^3.0.0",
@@ -63,8 +70,15 @@
     "prettier": "^3.1.1",
     "prettier-plugin-solidity": "^1.2.0"
   },
+
+  "type": "module",
+
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=9.0.0"
+  },
+  "allowScripts": {
+    "keccak@3.0.4": true,
+    "secp256k1@4.0.4": true
   }
 }

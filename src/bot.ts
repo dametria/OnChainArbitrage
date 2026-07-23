@@ -52,7 +52,7 @@ interface BotStats {
 // ============================================================================
 
 class ArbitrageBot {
-  private provider: ethers.JsonRpcProvider;
+  private provider: ethers.JsonRpcProvider | ethers.WebSocketProvider;
   private wallet: ethers.Wallet;
   private priceMonitor: PriceMonitor;
   private tradeExecutor: TradeExecutor;
@@ -61,15 +61,37 @@ class ArbitrageBot {
   private monitoringInterval: NodeJS.Timeout | null = null;
 
   constructor() {
-    // Initialize provider
-    this.provider = new ethers.JsonRpcProvider(config.network.rpcUrl);
+    // Initialize provider (prefer WSS from .env via config.network.rpcUrl)
+    const rpcUrl = config.network.rpcUrl;
+
+    if (rpcUrl && rpcUrl.startsWith("wss://")) {
+      // WebSocket provider
+      this.provider = new ethers.WebSocketProvider(rpcUrl);
+
+      // Optional connection logging
+      this.provider.on("block", (blockNumber: number) => {
+        if (blockNumber % 100 === 0) {
+          logger.info(`📡 WSS connected | Block: ${blockNumber}`);
+        }
+      });
+
+      this.provider.on("error", (error: any) => {
+        logger.error("WebSocket error:", error?.message || error);
+      });
+
+      logger.success("🚀 Using WebSocket (WSS) provider");
+    } else {
+      // Fallback to HTTP
+      this.provider = new ethers.JsonRpcProvider(rpcUrl || "https://polygon-mainnet.g.alchemy.com/v2/W6kj4k2ZgM0hqw0JK5eIc");
+      logger.info("Using HTTP RPC provider");
+    }
 
     // Initialize wallet
     this.wallet = new ethers.Wallet(config.wallet.privateKey, this.provider);
 
     // Initialize modules
-    this.priceMonitor = new PriceMonitor(this.provider);
-    this.tradeExecutor = new TradeExecutor(this.provider, this.wallet);
+    this.priceMonitor = new PriceMonitor(this.provider as any);
+    this.tradeExecutor = new TradeExecutor(this.provider as any, this.wallet);
 
     // Initialize statistics
     this.stats = {
@@ -203,9 +225,9 @@ class ArbitrageBot {
           sellOn: opportunity.sellDex.dexName,
           sellPrice: opportunity.sellDex.price.toFixed(4),
           profitPercent: `${opportunity.profitPercent.toFixed(3)}%`,
-          estimatedProfit: `$${opportunity.profitUsd.toFixed(2)}`,
-          estimatedGas: `$${opportunity.estimatedGasCost.toFixed(2)}`,
-          netProfit: `$${opportunity.netProfit.toFixed(2)}`,
+          estimatedProfit: `\[ {opportunity.profitUsd.toFixed(2)}`,
+          estimatedGas: ` \]{opportunity.estimatedGasCost.toFixed(2)}`,
+          netProfit: `\[ {opportunity.netProfit.toFixed(2)}`,
         });
 
         // Execute trade
@@ -246,9 +268,9 @@ class ArbitrageBot {
         logger.success("Trade Statistics Updated:", {
           totalTrades: this.stats.tradesExecuted,
           successRate: `${((this.stats.successfulTrades / this.stats.tradesExecuted) * 100).toFixed(1)}%`,
-          totalProfit: `$${this.stats.totalProfit.toFixed(2)}`,
-          totalGasCost: `$${this.stats.totalGasCost.toFixed(2)}`,
-          netProfit: `$${this.stats.netProfit.toFixed(2)}`,
+          totalProfit: ` \]{this.stats.totalProfit.toFixed(2)}`,
+          totalGasCost: `\[ {this.stats.totalGasCost.toFixed(2)}`,
+          netProfit: ` \]{this.stats.netProfit.toFixed(2)}`,
         });
       } else {
         this.stats.failedTrades++;
@@ -423,8 +445,8 @@ class ArbitrageBot {
       logger.info(`  ❌ Unknown errors: ${this.stats.failureReasons.unknown}`);
     }
 
-    logger.info(`Total Profit: $${this.stats.totalProfit.toFixed(2)}`);
-    logger.info(`Total Gas Cost: $${this.stats.totalGasCost.toFixed(2)}`);
+    logger.info(`Total Profit: \[ {this.stats.totalProfit.toFixed(2)}`);
+    logger.info(`Total Gas Cost: \]{this.stats.totalGasCost.toFixed(2)}`);
     logger.info(`Net Profit: $${this.stats.netProfit.toFixed(2)}`);
     logger.separator();
   }
@@ -475,15 +497,13 @@ async function main() {
   // Start the bot
   try {
     await bot.start();
-
-    // Keep the process running
-    // The bot will run until SIGINT (Ctrl+C) or an error occurs
   } catch (error) {
     logger.error("Fatal error:", error);
     process.exit(1);
   }
 }
 
+<<<<<<< Updated upstream
 // ESM equivalent of require.main === module
 // Checks if this file is being run directly (not imported)
 const isMainModule = import.meta.url === `file://${process.argv[1]}` || 
@@ -492,6 +512,10 @@ const isMainModule = import.meta.url === `file://${process.argv[1]}` ||
 if (isMainModule) {
   main();
 }
+=======
+// Always run when this file is executed directly
+main();
+>>>>>>> Stashed changes
 
 export default ArbitrageBot;
 export { ArbitrageBot };

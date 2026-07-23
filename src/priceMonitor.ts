@@ -122,7 +122,7 @@ const CACHE_TTL_MS = 5000;
 const reserveCache = new Map<string, CachedReserve>();
 
 function getCacheKey(dexName: string, token0: string, token1: string): string {
-  return `${dexName}:${token0}:${token1}`.toLowerCase();
+  return `\( {dexName}: \){token0}:${token1}`.toLowerCase();
 }
 
 function getCachedReserve(cacheKey: string): CachedReserve | null {
@@ -148,11 +148,43 @@ let cacheMisses = 0;
 setInterval(() => {
   if (cacheHits + cacheMisses > 0) {
     const hitRate = ((cacheHits / (cacheHits + cacheMisses)) * 100).toFixed(1);
-    logger.debug(`[CACHE] Hit rate: ${hitRate}% (${cacheHits} hits, ${cacheMisses} misses)`);
+    logger.debug(`[CACHE] Hit rate: \( {hitRate}% ( \){cacheHits} hits, ${cacheMisses} misses)`);
     cacheHits = 0;
     cacheMisses = 0;
   }
 }, 60000); // Log every minute
+
+// ============================================================================
+// USD PRICE HELPERS (Accurate liquidity calculation)
+// ============================================================================
+
+const STABLECOINS = new Set(
+  [
+    config.tokens.USDC?.toLowerCase(),
+    config.tokens.USDT?.toLowerCase(),
+    config.tokens.DAI?.toLowerCase(),
+  ].filter(Boolean) as string[]
+);
+
+const APPROX_USD_PRICES: Record<string, number> = {
+  // Stablecoins
+  [config.tokens.USDC?.toLowerCase() || ""]: 1,
+  [config.tokens.USDT?.toLowerCase() || ""]: 1,
+  [config.tokens.DAI?.toLowerCase() || ""]: 1,
+
+  // Major assets (update these periodically)
+  [config.tokens.WETH?.toLowerCase() || ""]: 2400,
+  [config.tokens.WBTC?.toLowerCase() || ""]: 65000,
+  [config.tokens.WMATIC?.toLowerCase() || ""]: 0.40,
+};
+
+function getTokenUsdPrice(tokenAddress: string): number {
+  return APPROX_USD_PRICES[tokenAddress.toLowerCase()] || 0;
+}
+
+function isStablecoin(tokenAddress: string): boolean {
+  return STABLECOINS.has(tokenAddress.toLowerCase());
+}
 
 // ============================================================================
 // UNISWAP V3 POOL ABI (For liquidity checking)
@@ -234,12 +266,8 @@ export class PriceMonitor {
   }
 
   /**
-   * Get real liquidity reserves from a DEX pair
-   * 
-   * CRITICAL: This determines max safe trade size
-   * Returns liquidity in USD (approximated from reserves)
-   * 
-   * OPTIMIZATION: Uses 5-second cache to reduce RPC calls by 80-95%
+   * Get real liquidity reserves from a DEX pair (V2)
+   * Correctly converts both reserves to USD using real prices
    */
   private async getRealLiquidity(
     routerAddress: string,
@@ -249,40 +277,30 @@ export class PriceMonitor {
     decimals1: number
   ): Promise<number> {
     try {
-      // Check cache first (dex name from router address)
       const cacheKey = getCacheKey(routerAddress, token0Address, token1Address);
       const cached = getCachedReserve(cacheKey);
-      
+
       if (cached) {
         cacheHits++;
-        logger.debug(`[CACHE] ✅ HIT for ${routerAddress.slice(0,10)}.../${token0Address.slice(0,6)}.../${token1Address.slice(0,6)}...`);
-        // Calculate liquidity from cached reserves
-        const reserve1Float = parseFloat(ethers.formatUnits(cached.reserve1, decimals1));
-        return reserve1Float * 1; // Conservative $1 per token1
+        return cached.liquidity;
       }
-      
+
       cacheMisses++;
-      logger.debug(`[CACHE] ❌ MISS for ${routerAddress.slice(0,10)}.../${token0Address.slice(0,6)}.../${token1Address.slice(0,6)}... (fetching from RPC)`);
-      
-      // Get factory address from router
+
+      // Get factory → pair → reserves
       const router = new ethers.Contract(routerAddress, UNISWAP_V2_ROUTER_ABI, this.provider);
       const factoryAddress = await router.factory();
-      
-      // Get pair address from factory
       const factory = new ethers.Contract(factoryAddress, UNISWAP_V2_FACTORY_ABI, this.provider);
       const pairAddress = await factory.getPair(token0Address, token1Address);
-      
-      // Check if pair exists
+
       if (pairAddress === ethers.ZeroAddress) {
-        return 0; // No pool = no liquidity
+        return 0;
       }
-      
-      // Get reserves from pair contract
+
       const pair = new ethers.Contract(pairAddress, UNISWAP_V2_PAIR_ABI, this.provider);
       const reserves = await pair.getReserves();
       const token0Pair = await pair.token0();
-      
-      // Determine which reserve is which token
+
       let reserve0: bigint, reserve1: bigint;
       if (token0Pair.toLowerCase() === token0Address.toLowerCase()) {
         reserve0 = reserves.reserve0;
@@ -291,23 +309,47 @@ export class PriceMonitor {
         reserve0 = reserves.reserve1;
         reserve1 = reserves.reserve0;
       }
-      
-      // Convert reserves to human-readable numbers
+
       const reserve0Float = parseFloat(ethers.formatUnits(reserve0, decimals0));
       const reserve1Float = parseFloat(ethers.formatUnits(reserve1, decimals1));
-      
-      // Estimate liquidity in USD
-      const estimatedLiquidityUSD = reserve1Float * 1; // Conservative $1 per token1
-      
-      // Cache the reserves for 5 seconds
+
+      // ========== IMPROVED USD CALCULATION ==========
+      let estimatedLiquidityUSD = 0;
+
+      const price0 = getTokenUsdPrice(token0Address);
+      const price1 = getTokenUsdPrice(token1Address);
+
+      if (isStablecoin(token1Address)) {
+        // token1 is stable → use 2 × reserve1 (standard approximation)
+        estimatedLiquidityUSD = reserve1Float * 2;
+      } else if (isStablecoin(token0Address)) {
+        // token0 is stable
+        estimatedLiquidityUSD = reserve0Float * 2;
+      } else if (price0 > 0 && price1 > 0) {
+        // Both sides have known prices → value both
+        estimatedLiquidityUSD = (reserve0Float * price0) + (reserve1Float * price1);
+      } else if (price1 > 0) {
+        estimatedLiquidityUSD = reserve1Float * price1 * 2;
+      } else if (price0 > 0) {
+        estimatedLiquidityUSD = reserve0Float * price0 * 2;
+      } else {
+        // Last resort fallback
+        estimatedLiquidityUSD = Math.max(reserve0Float, reserve1Float);
+      }
+
+      // Cache it
       setCachedReserve(cacheKey, {
         reserve0,
         reserve1,
         token0: token0Pair,
         liquidity: estimatedLiquidityUSD,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
-      
+
+      logger.debug(
+        `[LIQUIDITY V2] \( {token0Address.slice(0, 6)}.../ \){token1Address.slice(0, 6)}... → \[ {estimatedLiquidityUSD.toFixed(0)}`
+      );
+
       return estimatedLiquidityUSD;
     } catch (error) {
       logger.debug(`Failed to get reserves: ${error}`);
@@ -316,19 +358,7 @@ export class PriceMonitor {
   }
 
   /**
-   * Get liquidity from Uniswap V3 pool
-   * 
-   * V3 uses concentrated liquidity, so we:
-   * 1. Get the raw liquidity value from the pool
-   * 2. Get sqrtPriceX96 to determine current price
-   * 3. Calculate approximate TVL based on L and price
-   * 
-   * Formula for V3 liquidity to USD:
-   * - L = sqrt(x * y) in concentrated liquidity terms
-   * - For a given L and price P, we can estimate virtual reserves
-   * - TVL ≈ 2 * L * sqrt(P) adjusted for decimals
-   * 
-   * OPTIMIZATION: Uses 5-second cache to reduce RPC calls
+   * Get liquidity from Uniswap V3 pool (Improved)
    */
   private async getV3Liquidity(
     token0Address: string,
@@ -338,119 +368,103 @@ export class PriceMonitor {
     decimals1: number
   ): Promise<number> {
     try {
-      // Check cache first (using feeTier in key for V3)
       const cacheKey = getCacheKey(`v3_${feeTier}`, token0Address, token1Address);
       const cached = getCachedReserve(cacheKey);
-      
+
       if (cached) {
         cacheHits++;
-        logger.debug(`[CACHE] ✅ HIT for V3 tier ${feeTier}/${token0Address.slice(0,6)}.../${token1Address.slice(0,6)}...`);
-        return cached.liquidity; // Liquidity already calculated and cached
+        return cached.liquidity;
       }
-      
+
       cacheMisses++;
-      logger.debug(`[CACHE] ❌ MISS for V3 tier ${feeTier}/${token0Address.slice(0,6)}.../${token1Address.slice(0,6)}... (fetching from RPC)`);
-      
+
       // Get pool address for this fee tier
       const poolAddress = await this.v3FactoryContract.getPool(
         token0Address,
         token1Address,
         feeTier
       );
-      
-      // Check if pool exists
+
       if (poolAddress === ethers.ZeroAddress) {
-        return 0; // No pool for this fee tier
+        return 0;
       }
-      
-      // Get liquidity and price from pool
+
       const pool = new ethers.Contract(poolAddress, UNISWAP_V3_POOL_ABI, this.provider);
       const [liquidity, slot0] = await Promise.all([
         pool.liquidity(),
         pool.slot0()
       ]);
-      
+
       if (liquidity <= 0n) {
-        return 0; // No liquidity in pool
+        return 0;
       }
-      
-      // Calculate TVL from V3 concentrated liquidity
-      // sqrtPriceX96 = sqrt(price) * 2^96
+
+      // Calculate price from sqrtPriceX96
       const sqrtPriceX96 = slot0[0] as bigint;
-      
-      // Convert sqrtPriceX96 to actual price ratio safely
-      // Using string conversion to avoid BigInt overflow in Number conversion
-      const Q96 = 2n ** 96n;
-      
-      // Safe conversion: divide first to reduce size, then convert
-      // sqrtPriceX96 / 2^48 gives us a manageable number, then square and divide by 2^96
       const sqrtPriceScaled = sqrtPriceX96 / (2n ** 48n);
       const sqrtPriceNum = Number(sqrtPriceScaled) / Number(2n ** 48n);
       const priceRatio = sqrtPriceNum * sqrtPriceNum;
-      
-      // Adjust for decimal difference between tokens
-      const decimalAdjustment = Math.pow(10, decimals0 - decimals1);
-      const humanPrice = priceRatio * decimalAdjustment;
-      
-      // Estimate TVL using L and price
-      // For concentrated liquidity: virtual_x ≈ L / sqrt(P), virtual_y ≈ L * sqrt(P)
-      // TVL ≈ virtual_x * price_x + virtual_y * price_y
-      // Simplified: TVL ≈ 2 * L * sqrt(P) (in token1 terms)
-      
-      // Safe conversion of liquidity to number
+
+      // Safe conversion of liquidity
       const liquidityStr = liquidity.toString();
       const liquidityNum = liquidityStr.length > 15 
         ? parseFloat(liquidityStr.slice(0, 15)) * Math.pow(10, liquidityStr.length - 15)
         : Number(liquidity);
-      
-      const sqrtLiquidity = Math.sqrt(liquidityNum);
-      
-      // Scale factor accounts for V3's internal representation
-      // Typical V3 pools have L values in the 1e15-1e20 range
-      // We scale to get USD estimate (assuming token1 is a stablecoin or WETH)
-      const scaleFactor = Math.pow(10, -12); // Adjust based on typical pool sizes
-      
-      // If token1 is a stablecoin (USDC, USDT, DAI), value is direct USD
-      // If token1 is WETH, multiply by ETH price (~$2400)
-      let usdMultiplier = 1;
-      const token1Lower = token1Address.toLowerCase();
-      const wethAddress = config.tokens.WETH?.toLowerCase();
-      const wbtcAddress = config.tokens.WBTC?.toLowerCase();
-      
-      if (token1Lower === wethAddress) {
-        usdMultiplier = 2400; // Approximate ETH price
-      } else if (token1Lower === wbtcAddress) {
-        usdMultiplier = 60000; // Approximate BTC price
+
+      // ========== IMPROVED USD ESTIMATION ==========
+      const price0 = getTokenUsdPrice(token0Address);
+      const price1 = getTokenUsdPrice(token1Address);
+
+      let estimatedLiquidityUSD = 0;
+
+      // Prefer stablecoin side when possible
+      if (isStablecoin(token1Address) && price1 > 0) {
+        // Rough but effective: use a scaled version of L
+        estimatedLiquidityUSD = (liquidityNum / 1e12) * Math.sqrt(priceRatio || 1);
+      } else if (isStablecoin(token0Address) && price0 > 0) {
+        estimatedLiquidityUSD = (liquidityNum / 1e12) * Math.sqrt(1 / (priceRatio || 1));
+      } else if (price0 > 0 && price1 > 0) {
+        // Both sides known – blend
+        estimatedLiquidityUSD = (liquidityNum / 1e12) * ((price0 + price1) / 2);
+      } else {
+        // Fallback using known multipliers
+        let usdMultiplier = 1;
+        if (token1Address.toLowerCase() === config.tokens.WETH?.toLowerCase()) {
+          usdMultiplier = 2400;
+        } else if (token1Address.toLowerCase() === config.tokens.WBTC?.toLowerCase()) {
+          usdMultiplier = 65000;
+        } else if (token0Address.toLowerCase() === config.tokens.WETH?.toLowerCase()) {
+          usdMultiplier = 2400;
+        } else if (token0Address.toLowerCase() === config.tokens.WBTC?.toLowerCase()) {
+          usdMultiplier = 65000;
+        }
+
+        estimatedLiquidityUSD = (liquidityNum / 1e12) * usdMultiplier;
       }
-      
-      // Calculate estimated TVL
-      let estimatedLiquidityUSD = liquidityNum * sqrtPriceNum * scaleFactor * usdMultiplier;
-      
-      // Sanity bounds: V3 pools on Polygon range from $10k to $200M
-      // If our estimate is way off, use a conservative fallback based on raw liquidity
-      if (estimatedLiquidityUSD < 1000 || estimatedLiquidityUSD > 500000000) {
-        // Fallback: Use log-scale estimation from raw liquidity value
-        // Higher L generally means higher TVL
-        const logL = Math.log10(liquidityNum);
-        // Typical relationship: TVL ≈ 10^(logL - 12) for stablecoin pairs
-        estimatedLiquidityUSD = Math.pow(10, Math.max(logL - 12, 3)); // Min $1k
-        estimatedLiquidityUSD = Math.min(estimatedLiquidityUSD, 100000000); // Max $100M
+
+      // Sanity bounds
+      if (estimatedLiquidityUSD < 500) {
+        estimatedLiquidityUSD = 0; // Treat as no meaningful liquidity
       }
-      
-      logger.debug(`[V3] Pool ${poolAddress.slice(0,8)}... L=${liquidity.toString().slice(0,8)}... sqrtP=${sqrtPriceNum.toFixed(4)} → TVL=$${estimatedLiquidityUSD.toFixed(0)}`);
-      
-      // Cache the V3 liquidity data
+      if (estimatedLiquidityUSD > 500_000_000) {
+        estimatedLiquidityUSD = 100_000_000; // Cap extreme outliers
+      }
+
+      logger.debug(
+        `[LIQUIDITY V3] \( {poolAddress.slice(0, 8)}... fee= \){feeTier} → \]{estimatedLiquidityUSD.toFixed(0)}`
+      );
+
+      // Cache
       setCachedReserve(cacheKey, {
-        reserve0: 0n, // V3 doesn't use simple reserves
+        reserve0: 0n,
         reserve1: liquidity,
         token0: token0Address,
         liquidity: estimatedLiquidityUSD,
         timestamp: Date.now()
       });
-      
+
       return estimatedLiquidityUSD;
     } catch (error) {
-      // Pool doesn't exist or error querying
       logger.debug(`[V3] Error getting liquidity: ${error}`);
       return 0;
     }
@@ -458,12 +472,6 @@ export class PriceMonitor {
 
   /**
    * Get price from Uniswap V3 using Quoter
-   * 
-   * V3 DIFFERENCES FROM V2:
-   * - Uses Quoter contract for price quotes (not router)
-   * - Must specify fee tier (500, 3000, or 10000)
-   * - Tries all fee tiers and returns best price
-   * - Returns actual fee tier used for accurate fee calculation
    */
   private async getPriceFromV3(
     token0Address: string,
@@ -472,29 +480,24 @@ export class PriceMonitor {
     decimals1: number
   ): Promise<{ price: number; liquidity: number; feeTier: number } | null> {
     try {
-      // Amount to quote: 1 token (scaled by decimals)
       const amountIn = ethers.parseUnits("1", decimals0);
       
-      // Try all fee tiers and find best price
       let bestPrice = 0;
       let bestLiquidity = 0;
-      let bestFeeTier = 3000; // Default to 0.3%
+      let bestFeeTier = 3000;
       
       for (const feeTier of V3_FEE_TIERS) {
         try {
-          // Get quote for this fee tier
           const amountOut = await this.v3QuoterContract.quoteExactInputSingle.staticCall(
             token0Address,
             token1Address,
             feeTier,
             amountIn,
-            0 // No price limit
+            0
           );
           
-          // Convert to human-readable price
           const price = parseFloat(ethers.formatUnits(amountOut, decimals1));
           
-          // Get liquidity for this fee tier
           const liquidity = await this.getV3Liquidity(
             token0Address,
             token1Address,
@@ -503,23 +506,20 @@ export class PriceMonitor {
             decimals1
           );
           
-          // Track best price (higher is better for selling)
           if (price > bestPrice && liquidity > 0) {
             bestPrice = price;
             bestLiquidity = liquidity;
             bestFeeTier = feeTier;
           }
           
-          logger.debug(`[V3] Fee tier ${feeTier / 10000}%: price=${price.toFixed(6)}, liquidity=$${liquidity.toFixed(0)}`);
+          logger.debug(`[V3] Fee tier \( {feeTier / 10000}%: price= \){price.toFixed(6)}, liquidity=\[ {liquidity.toFixed(0)}`);
         } catch (error) {
-          // Pool doesn't exist for this fee tier, continue to next
           logger.debug(`[V3] No pool for fee tier ${feeTier / 10000}%`);
         }
       }
       
-      // Return best price found across all fee tiers
       if (bestPrice > 0) {
-        logger.debug(`[V3] ✅ Best: ${bestFeeTier / 10000}% tier with price=${bestPrice.toFixed(6)}, liquidity=$${bestLiquidity.toFixed(0)}`);
+        logger.debug(`[V3] ✅ Best: \( {bestFeeTier / 10000}% tier with price= \){bestPrice.toFixed(6)}, liquidity= \]{bestLiquidity.toFixed(0)}`);
         return {
           price: bestPrice,
           liquidity: bestLiquidity,
@@ -527,7 +527,7 @@ export class PriceMonitor {
         };
       }
       
-      return null; // No pools found
+      return null;
     } catch (error) {
       logger.debug(`[V3] Error getting price: ${error}`);
       return null;
@@ -536,12 +536,6 @@ export class PriceMonitor {
 
   /**
    * Get price from a DEX using Uniswap V2 formula OR V3 Quoter
-   * 
-   * HOW IT WORKS:
-   * 1. Detects if DEX is Uniswap V3
-   * 2. For V3: Uses Quoter contract to get best price across fee tiers
-   * 3. For V2: Calls getAmountsOut on the DEX router
-   * 4. Gets REAL liquidity from reserves/pools
    */
   private async getPriceFromDex(
     dexName: string,
@@ -550,14 +544,13 @@ export class PriceMonitor {
     token1Address: string
   ): Promise<DexPrice> {
     try {
-      // ============================================================================
+      // ===========================================================================
       // DETECT UNISWAP V3 AND USE QUOTER
-      // ============================================================================
+      // ===========================================================================
       
       if (dexName.toLowerCase().includes("uniswap") || dexName.toLowerCase() === "uniswapv3") {
         logger.debug(`[V3] Detected Uniswap V3, using Quoter for ${dexName}`);
         
-        // Get token decimals
         const token0 = new ethers.Contract(token0Address, ERC20_ABI, this.provider);
         const token1 = new ethers.Contract(token1Address, ERC20_ABI, this.provider);
         
@@ -568,7 +561,6 @@ export class PriceMonitor {
           decimals0 = await token0.decimals();
           decimals1 = await token1.decimals();
         } catch (e) {
-          // Token doesn't exist
           return {
             dexName,
             price: 0,
@@ -577,7 +569,6 @@ export class PriceMonitor {
           };
         }
         
-        // Get V3 price using Quoter
         const v3Result = await this.getPriceFromV3(
           token0Address,
           token1Address,
@@ -586,17 +577,16 @@ export class PriceMonitor {
         );
         
         if (v3Result && v3Result.price > 0) {
-          logger.debug(`[V3] ✅ ${dexName}: price=${v3Result.price.toFixed(6)}, fee=${v3Result.feeTier / 10000}%, liquidity=$${v3Result.liquidity.toFixed(0)}`);
+          logger.debug(`[V3] ✅ \( {dexName}: price= \){v3Result.price.toFixed(6)}, fee=${v3Result.feeTier / 10000}%, liquidity=$${v3Result.liquidity.toFixed(0)}`);
           
           return {
             dexName: `${dexName}`,
             price: v3Result.price,
             liquidity: v3Result.liquidity,
-            feeTier: v3Result.feeTier, // Include fee tier for accurate fee calculation
+            feeTier: v3Result.feeTier,
             timestamp: Date.now(),
           };
         } else {
-          // No V3 pools found
           logger.debug(`[V3] No pools found for ${dexName}`);
           return {
             dexName,
@@ -607,9 +597,9 @@ export class PriceMonitor {
         }
       }
       
-      // ============================================================================
+      // ===========================================================================
       // UNISWAP V2 LOGIC (QuickSwap, SushiSwap, etc.)
-      // ============================================================================
+      // ===========================================================================
       
       const router = new ethers.Contract(
         routerAddress,
@@ -617,7 +607,6 @@ export class PriceMonitor {
         this.provider
       );
 
-      // Get token decimals with error handling
       const token0 = new ethers.Contract(token0Address, ERC20_ABI, this.provider);
       const token1 = new ethers.Contract(token1Address, ERC20_ABI, this.provider);
       
@@ -627,7 +616,6 @@ export class PriceMonitor {
       try {
         decimals0 = await token0.decimals();
       } catch (e) {
-        // Token doesn't exist or doesn't implement decimals()
         return {
           dexName,
           price: 0,
@@ -639,7 +627,6 @@ export class PriceMonitor {
       try {
         decimals1 = await token1.decimals();
       } catch (e) {
-        // Token doesn't exist or doesn't implement decimals()
         return {
           dexName,
           price: 0,
@@ -648,40 +635,23 @@ export class PriceMonitor {
         };
       }
 
-      // Amount: 1 token (scaled by decimals)
       const amountIn = ethers.parseUnits("1", decimals0);
-
-      // Trading path: token0 -> token1
       const path = [token0Address, token1Address];
 
-      // Get amounts out - this will fail if no liquidity pool exists
       const amounts = await router.getAmountsOut(amountIn, path);
-      
-      // Price = how many token1 per 1 token0
       const amountOut = amounts[1];
-      
       const price = parseFloat(ethers.formatUnits(amountOut, decimals1));
 
-      // Validate price is reasonable (not 0 or extremely large)
-      // Extreme prices indicate broken/non-existent pools
-      // 
-      // Reasonable ranges:
-      // - WBTC/WMATIC: ~40,000 MATIC per WBTC
-      // - WETH/WMATIC: ~4,000 MATIC per WETH  
-      // - Most pairs: < 1000x ratio
-      //
-      // If price > 1000, likely a broken/non-existent pool
+      // Validate price is reasonable
       if (price <= 0 || price > 1000) {
         return {
           dexName,
-          price: 0, // Mark as invalid
+          price: 0,
           liquidity: 0,
           timestamp: Date.now(),
         };
       }
 
-      // Additional validation: Check if price is suspiciously small
-      // Prices < 0.0001 often indicate broken pools
       if (price < 0.0001) {
         return {
           dexName,
@@ -691,8 +661,7 @@ export class PriceMonitor {
         };
       }
 
-      // ✅ GET REAL LIQUIDITY FROM RESERVES
-      // This is CRITICAL for determining max safe trade size
+      // ✅ GET REAL LIQUIDITY FROM RESERVES (now accurate)
       const realLiquidity = await this.getRealLiquidity(
         routerAddress,
         token0Address,
@@ -701,16 +670,13 @@ export class PriceMonitor {
         decimals1
       );
 
-      // Each DEX has its own liquidity pools, so prices naturally differ
       return {
         dexName,
         price: price,
-        liquidity: realLiquidity, // ✅ REAL liquidity from reserves (not fake!)
+        liquidity: realLiquidity,
         timestamp: Date.now(),
       };
     } catch (error) {
-      // Pool doesn't exist on this DEX - this is normal, not all pairs exist on all DEXes
-      // Return zero price to indicate no liquidity
       return {
         dexName,
         price: 0,
@@ -726,9 +692,6 @@ export class PriceMonitor {
   async getPricesForPair(pair: TokenPair): Promise<DexPrice[]> {
     logger.debug(`Fetching prices for ${pair.name}...`);
 
-    // Query multiple DEX routers on Polygon
-    // FOCUS: QuickSwap (0.25%), SushiSwap (0.3%), Uniswap V3 (0.05%-1% tiered)
-    // REMOVED: Dfyn and ApeSwap (consistently showed pools <$500 liquidity)
     const prices = await Promise.all([
       this.getPriceFromDex(
         "quickswap",
@@ -750,26 +713,16 @@ export class PriceMonitor {
       ),
     ]);
 
-    // Filter out failed price fetches (pairs with no liquidity pools)
     return prices.filter((p) => p.price > 0);
   }
 
   /**
    * Find arbitrage opportunities by comparing prices
-   * 
-   * LOGIC:
-   * 1. Get prices from all DEXes
-   * 2. Find the lowest price (where to buy)
-   * 3. Find the highest price (where to sell)
-   * 4. Calculate profit percentage
-   * 5. Estimate gas costs
-   * 6. Determine if opportunity is viable
    */
   async findArbitrageOpportunity(
     pair: TokenPair
   ): Promise<ArbitrageOpportunity | null> {
     try {
-      // Get prices from all DEXes
       const prices = await this.getPricesForPair(pair);
 
       if (prices.length < 2) {
@@ -777,7 +730,6 @@ export class PriceMonitor {
         return null;
       }
 
-      // Find best buy and sell prices
       const buyPrice = prices.reduce((min, p) =>
         p.price < min.price ? p : min
       );
@@ -785,33 +737,15 @@ export class PriceMonitor {
         p.price > max.price ? p : max
       );
 
-      // Log price check
       logger.priceCheck(pair.name, buyPrice.price, sellPrice.price);
 
-      // Calculate profit percentage
-      // If you buy at 2000 and sell at 2020, profit = (2020-2000)/2000 = 1%
       const profitPercent = ((sellPrice.price - buyPrice.price) / buyPrice.price) * 100;
 
-      // Skip if same DEX or no price difference
       if (buyPrice.dexName === sellPrice.dexName || profitPercent <= 0) {
         return null;
       }
 
-      // ============================================================================
-      // 🚨 CRITICAL: REJECT UNREALISTIC PROFIT PERCENTAGES
-      // ============================================================================
-      // Real arbitrage on efficient markets like Polygon:
-      // - Typical: 0.3% - 2% (30-200 bps)
-      // - Good: 2% - 5% (very rare, MEV bots capture these instantly)
-      // - Impossible: >10% (market would instantly correct this)
-      //
-      // If we see >2.5% profit, it means:
-      // 1. Price data is wrong (pool doesn't exist)
-      // 2. Fake/honeypot token (6-10% spreads are NOT real)
-      // 3. Trade will fail with INSUFFICIENT_OUTPUT_AMOUNT
-      // 4. Wasting gas trying to execute
-      //
-      // Set to 2.5% to filter out fake pools while keeping real opportunities
+      // Reject unrealistic profit percentages
       const MAX_REALISTIC_PROFIT = 2.5; 
       
       if (profitPercent > MAX_REALISTIC_PROFIT) {
@@ -821,29 +755,23 @@ export class PriceMonitor {
         return null;
       }
 
-      // Estimate profit in USD (assuming $1000 trade size)
-      const tradeSize = 1000; // $1000 trade
+      const tradeSize = 1000;
       const profitUsd = (tradeSize * profitPercent) / 100;
 
-      // Estimate gas costs
-      // Flash loan + 2 swaps ≈ 300,000 gas
       const gasLimit = 300000n;
       const gasPrice = await this.provider.getFeeData();
       const gasCostWei = gasLimit * (gasPrice.gasPrice || 0n);
       const gasCostNative = parseFloat(ethers.formatEther(gasCostWei));
       
-      // Network-specific native token prices (for accurate gas cost calculation)
-      const nativePriceUsd = config.network.name === 'polygon' ? 0.40 : // MATIC price
-                             config.network.name === 'bsc' ? 600 :     // BNB price
-                             config.network.name === 'base' ? 2000 :    // ETH on Base
-                             2000; // Default to ETH price for other chains
+      const nativePriceUsd = config.network.name === 'polygon' ? 0.40 :
+                             config.network.name === 'bsc' ? 600 :
+                             config.network.name === 'base' ? 2000 :
+                             2000;
       const estimatedGasCost = gasCostNative * nativePriceUsd;
 
-      // Calculate net profit after gas costs
       const netProfit = profitUsd - estimatedGasCost;
 
-      // Check if opportunity meets minimum profit threshold
-      const minProfitPercent = config.trading.minProfitBps / 100; // Convert bps to %
+      const minProfitPercent = config.trading.minProfitBps / 100;
       const viable =
         profitPercent >= minProfitPercent &&
         netProfit > 0 &&
@@ -860,7 +788,6 @@ export class PriceMonitor {
         viable,
       };
 
-      // Log opportunity to data logger
       if (viable) {
         const dataLogger = getLogger();
         const blockNumber = await this.provider.getBlockNumber();
@@ -881,7 +808,7 @@ export class PriceMonitor {
           profitPercent: profitPercent,
           gasPrice: gasPrice.gasPrice?.toString() || "0",
           gasCostUSD: estimatedGasCost,
-          flashLoanFee: (tradeSize * 0.0005).toFixed(6), // 0.05% flash loan fee
+          flashLoanFee: (tradeSize * 0.0005).toFixed(6),
           flashLoanFeeUSD: tradeSize * 0.0005,
           netProfit: netProfit.toFixed(6),
           netProfitUSD: netProfit,
@@ -902,7 +829,6 @@ export class PriceMonitor {
 
   /**
    * Scan all pairs for arbitrage opportunities
-   * This is the main loop that runs continuously
    */
   async scanForOpportunities(): Promise<ArbitrageOpportunity[]> {
     logger.debug("Scanning for arbitrage opportunities...");
@@ -911,7 +837,6 @@ export class PriceMonitor {
       this.pairs.map((pair) => this.findArbitrageOpportunity(pair))
     );
 
-    // Filter out null results and return only viable opportunities
     return opportunities.filter(
       (opp): opp is ArbitrageOpportunity => opp !== null && opp.viable
     );
