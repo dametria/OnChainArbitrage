@@ -32,9 +32,8 @@ dotenv.config(); // Load environment variables from .env
 // CONFIGURATION
 // ============================================================================
 
-
-const RPC_URL = process.env.POLYGON_RPC_URL || "https://polygon-mainnet.infura.io/v3/a77c27e993ab4566b5411a4964f437a7";
-const provider = new ethers.JsonRpcProvider(RPC_URL)
+const RPC_URL = process.env.POLYGON_RPC_URL || process.env.RPC_URL || "https://polygon-rpc.com";
+const provider = new ethers.JsonRpcProvider(RPC_URL);
 
 // Minimum thresholds
 const MIN_LIQUIDITY_USD = 50000; // $50k per DEX
@@ -101,16 +100,6 @@ const DEX_FACTORIES = {
     factory: "0x1F98431c8aD98523631AE4a59f267346ea31F984",
     type: "v3",
   },
-  balancer: {
-    name: "Balancer",
-    vault: "0xBA12222222228d8Ba445958a75a0704d566BF2C8", // Balancer uses a vault, not factory
-    type: "weighted",
-  },
-  curve: {
-    name: "Curve",
-    registry: "0x094d12e5b541784701FD8d65F11fc0598FBC6332", // Curve registry on Polygon
-    type: "stable",
-  },
 };
 
 // ABIs
@@ -153,7 +142,7 @@ async function fetchTokenPrices() {
 
           console.log("📊 Fetched real-time prices from CoinGecko:");
           Object.entries(priceMap).forEach(([symbol, price]) => {
-            if (price > 0) console.log(`  ${symbol}: $${price.toFixed(2)}`);
+            if (price > 0) console.log(`  ${symbol}: \[ {price.toFixed(2)}`);
           });
           console.log();
 
@@ -183,18 +172,18 @@ async function queryUniswapV3Pools(token0Address, token1Address) {
   const GRAPH_API_KEY = process.env.GRAPH_API_KEY;
 
   if (!GRAPH_API_KEY) {
-    console.log(' ⚠️ No GRAPH_API_KEY found in .env file - skipping V3 queries');
+    console.log('  ⚠️ No GRAPH_API_KEY found in .env file - skipping V3 queries');
     return [];
   }
 
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const query = JSON.stringify({
       query: `{
         pools(
           where: {
             or: [
-              { token0: "${token0Address.toLowerCase()}", token1: "${token1Address.toLowerCase()}" },
-              { token0: "${token1Address.toLowerCase()}", token1: "${token0Address.toLowerCase()}" }
+              { token0: "\( {token0Address.toLowerCase()}", token1: " \){token1Address.toLowerCase()}" },
+              { token0: "\( {token1Address.toLowerCase()}", token1: " \){token0Address.toLowerCase()}" }
             ]
           }
           orderBy: totalValueLockedUSD
@@ -228,21 +217,20 @@ async function queryUniswapV3Pools(token0Address, token1Address) {
         try {
           const result = JSON.parse(data);
           if (result.errors) {
-            console.log(` ⚠️ V3 Query Error: ${JSON.stringify(result.errors)}`);
+            console.log(`  ⚠️ V3 Query Error: ${JSON.stringify(result.errors)}`);
             resolve([]);
           } else {
             resolve(result.data?.pools || []);
           }
         } catch (error) {
-          console.log(` ⚠️ V3 Parse Error: ${error.message}`);
-          console.log(` Response: ${data.substring(0, 200)}`);
+          console.log(`  ⚠️ V3 Parse Error: ${error.message}`);
           resolve([]);
         }
       });
     });
 
     req.on('error', (error) => {
-      console.log(` ⚠️ V3 Request Error: ${error.message}`);
+      console.log(`  ⚠️ V3 Request Error: ${error.message}`);
       resolve([]);
     });
     req.write(query);
@@ -279,9 +267,8 @@ async function getPairInfo(dexKey, dexConfig, token0Address, token1Address, toke
 
       const liquidityUSD = (reserve0Formatted * price0) + (reserve1Formatted * price1);
 
-      // Volume estimation (can be improved with subgraph queries)
-      // For now, estimate: pools with >$100k liquidity typically have >$50k daily volume
-      const estimatedVolumeUSD = liquidityUSD * 0.5; // Rough 0.5x turnover estimate
+      // Volume estimation
+      const estimatedVolumeUSD = liquidityUSD * 0.5;
 
       return {
         pairAddress,
@@ -324,237 +311,7 @@ async function getPairInfo(dexKey, dexConfig, token0Address, token1Address, toke
 
     return null;
   } catch (error) {
-    console.error(` ❌ Error checking ${dexConfig.name}:`, error.message);
-    return null;
-  }
-}
-
-// ============================================================================
-// PAIR DISCOVERY
-// ============================================================================
-
-async function discoverHighLiquidityPairs() {
-  console.log("╔═══════════════════════════════════════════════════════════════╗");
-  console.log("║ ENHANCED HIGH-LIQUIDITY PAIR DISCOVERY (v2)                   ║");
-  console.log("╚═══════════════════════════════════════════════════════════════╝\n");
-
-  // Fetch real prices
-  console.log("📡 Fetching real-time token prices...\n");
-  let tokenPrices;
-  try {
-    tokenPrices = await fetchTokenPrices();
-  } catch (error) {
-    console.warn("⚠️ CoinGecko API failed, using fallback prices\n");
-    tokenPrices = FALLBACK_PRICES;
-  }
-
-  // Load existing pairs
-  const pairsFilePath = path.join(__dirname, "..", "..", "data", "pairs", "trading-pairs.json");
-  let existingData = { pairs: [], stats: {} };
-  const existingPairsMap = new Map(); // Use Map to preserve enabled/disabled state
-
-  if (fs.existsSync(pairsFilePath)) {
-    const fileContent = fs.readFileSync(pairsFilePath, "utf-8");
-    existingData = JSON.parse(fileContent);
-    existingData.pairs.forEach(p => {
-      existingPairsMap.set(p.name, p); // Store entire pair object
-    });
-    console.log(`📋 Loaded ${existingData.pairs.length} existing pairs`);
-    console.log(`  (${existingData.pairs.filter(p => !p.enabled).length} disabled pairs will be preserved)\n`);
-  }
-
-  const tokenEntries = Object.entries(HIGH_LIQUIDITY_TOKENS);
-  const newPairs = [];
-  let checked = 0;
-  let found = 0;
-  let skipped = 0;
-
-  // Check all token combinations
-  for (let i = 0; i < tokenEntries.length; i++) {
-    for (let j = i + 1; j < tokenEntries.length; j++) {
-      const [symbol0, address0] = tokenEntries[i];
-      const [symbol1, address1] = tokenEntries[j];
-      const pairName = `${symbol0}/${symbol1}`;
-
-      // Skip if pair already exists (preserve enabled/disabled state)
-      if (existingPairsMap.has(pairName)) {
-        const existingPair = existingPairsMap.get(pairName);
-        const status = existingPair.enabled ? "enabled" : "DISABLED";
-        console.log(`⏭️ ${pairName} - already exists (${status}, preserving state)`);
-        skipped++;
-        continue;
-      }
-
-      checked++;
-      console.log(`\n🔍 Checking ${pairName}...`);
-
-      // Check liquidity across all DEXes
-      const dexResults = {};
-      let validDexCount = 0;
-
-      for (const [dexKey, dexConfig] of Object.entries(DEX_FACTORIES)) {
-        // Skip Balancer and Curve for now (need special handling)
-        if (dexConfig.type === "weighted" || dexConfig.type === "stable") continue;
-
-        const pairInfo = await getPairInfo(
-          dexKey,
-          dexConfig,
-          address0,
-          address1,
-          tokenPrices,
-          symbol0,
-          symbol1
-        );
-
-        if (pairInfo) {
-          console.log(`  ✅ ${dexConfig.name}:`);
-          console.log(`     Liquidity: $${pairInfo.liquidityUSD.toLocaleString()}`);
-          console.log(`     Est. Volume: $${pairInfo.volumeUSD.toLocaleString()}`);
-          if (pairInfo.poolCount) {
-            console.log(`     Pools: ${pairInfo.poolCount} (Fee tiers: ${pairInfo.feeTiers})`);
-          }
-
-          // Check if meets thresholds
-          if (pairInfo.liquidityUSD >= MIN_LIQUIDITY_USD &&
-              pairInfo.volumeUSD >= MIN_VOLUME_24H_USD) {
-            dexResults[dexKey] = pairInfo;
-            validDexCount++;
-          } else {
-            console.log(`     ⚠️ Below threshold (need $${MIN_LIQUIDITY_USD.toLocaleString()} liquidity & $${MIN_VOLUME_24H_USD.toLocaleString()} volume)`);
-          }
-        } else {
-          console.log(`  ❌ ${dexConfig.name}: Pair not found or error`);
-        }
-
-        // Rate limiting
-        await new Promise(resolve => setTimeout(resolve, 200));
-      }
-
-      // Require presence on at least 2 DEXes
-      if (validDexCount >= MIN_DEXES_REQUIRED) {
-        const avgLiquidity = Object.values(dexResults).reduce((sum, d) => sum + d.liquidityUSD, 0) / validDexCount;
-        const avgVolume = Object.values(dexResults).reduce((sum, d) => sum + d.volumeUSD, 0) / validDexCount;
-
-        console.log(`  ✅ QUALIFIED! Found on ${validDexCount} DEXes`);
-        console.log(`     Avg Liquidity: $${avgLiquidity.toLocaleString()}`);
-        console.log(`     Avg Volume: $${avgVolume.toLocaleString()}`);
-
-        const liquidityByDex = {};
-        Object.entries(dexResults).forEach(([dex, info]) => {
-          liquidityByDex[dex] = Math.round(info.liquidityUSD);
-        });
-
-        newPairs.push({
-          name: pairName,
-          token0: symbol0,
-          token1: symbol1,
-          token0Address: address0,
-          token1Address: address1,
-          enabled: true, // NEW pairs are enabled by default
-          dexes: Object.keys(dexResults),
-          estimatedLiquidity: liquidityByDex,
-          averageLiquidity: Math.round(avgLiquidity),
-          estimatedVolume24h: Math.round(avgVolume),
-          discoveredAt: new Date().toISOString(),
-        });
-        found++;
-      } else {
-        console.log(`  ❌ REJECTED: Only found on ${validDexCount} DEX(es), need ${MIN_DEXES_REQUIRED}`);
-      }
-    }
-  }
-
-  console.log("\n" + "=".repeat(70));
-  console.log("📊 DISCOVERY SUMMARY");
-  console.log("=".repeat(70));
-  console.log(`  Checked: ${checked} new pairs`);
-  console.log(`  Skipped: ${skipped} existing pairs (state preserved)`);
-  console.log(`  Found: ${found} new high-liquidity pairs`);
-  console.log(`  Existing: ${existingData.pairs.length} pairs`);
-  console.log(`  Total: ${existingData.pairs.length + found} pairs\n`);
-
-  // Merge: Keep ALL existing pairs (preserving enabled/disabled), add new pairs
-  const allPairs = [...existingData.pairs, ...newPairs];
-
-  // Save updated pairs
-  const outputData = {
-    pairs: allPairs,
-    stats: {
-      totalPairs: allPairs.length,
-      enabledPairs: allPairs.filter(p => p.enabled).length,
-      disabledPairs: allPairs.filter(p => !p.enabled).length,
-      newPairsAdded: found,
-      lastUpdated: new Date().toISOString(),
-      version: "v2",
-      criteria: {
-        minLiquidityPerDex: `$${MIN_LIQUIDITY_USD.toLocaleString()}`,
-        minVolume24hPerDex: `$${MIN_VOLUME_24H_USD.toLocaleString()}`,
-        minDexesRequired: MIN_DEXES_REQUIRED,
-        dexesChecked: Object.keys(DEX_FACTORIES).map(k => DEX_FACTORIES[k].name),
-        priceSource: "CoinGecko API (with fallback)",
-      },
-    },
-  };
-
-  fs.writeFileSync(pairsFilePath, JSON.stringify(outputData, null, 2));
-  console.log(`💾 Saved to ${pairsFilePath}`);
-  console.log(`✅ Added ${found} new pairs, preserved ${skipped} existing pairs\n`);
-
-  // Print new pairs summary
-  if (found > 0) {
-    console.log("🆕 NEW PAIRS ADDED:");
-    newPairs.forEach((p, idx) => {
-      console.log(`  ${idx + 1}. ${p.name}`);
-      console.log(`      Liquidity: $${p.averageLiquidity.toLocaleString()}`);
-      console.log(`      Volume: $${p.estimatedVolume24h.toLocaleString()}`);
-      console.log(`      DEXes: ${p.dexes.join(", ")}`);
-    });
-    console.log();
-  }
-
-  // Print summary of existing disabled pairs (still preserved)
-  const disabledPairs = existingData.pairs.filter(p => !p.enabled);
-  if (disabledPairs.length > 0) {
-    console.log(`🔒 PRESERVED ${disabledPairs.length} DISABLED PAIRS:`);
-    disabledPairs.slice(0, 5).forEach(p => {
-      console.log(`  - ${p.name} (remains disabled)`);
-    });
-    if (disabledPairs.length > 5) {
-      console.log(`  ... and ${disabledPairs.length - 5} more disabled pairs`);
-    }
-    console.log();
-  }
-}
-
-// ============================================================================
-// MAIN
-// ============================================================================
-
-// ESM equivalent of require.main === module
-const isMainModule = import.meta.url === `file://${process.argv[1]}` || 
-                     process.argv[1]?.endsWith('discover-high-liquidity-pairs-v2.js');
-
-if (isMainModule) {
-  discoverHighLiquidityPairs()
-    .then(() => {
-      console.log("✅ Discovery complete!");
-      process.exit(0);
-    })
-    .catch((error) => {
-      console.error("❌ Error:", error);
-      process.exit(1);
-    });
-}
-
-export { discoverHighLiquidityPairs, fetchTokenPrices, getPairInfo };totalVolumeUSD * 0.1, // 10% of total volume as daily estimate
-        poolCount: pools.length,
-        feeTiers: pools.map(p => p.feeTier).join(', '),
-      };
-    }
-    
-    return null;
-  } catch (error) {
-    console.error(`   ❌ Error checking ${dexConfig.name}:`, error.message);
+    console.error(`  ❌ Error checking ${dexConfig.name}:`, error.message);
     return null;
   }
 }
@@ -567,7 +324,7 @@ async function discoverHighLiquidityPairs() {
   console.log("╔═══════════════════════════════════════════════════════════════╗");
   console.log("║       ENHANCED HIGH-LIQUIDITY PAIR DISCOVERY (v2)             ║");
   console.log("╚═══════════════════════════════════════════════════════════════╝\n");
-  
+
   // Fetch real prices
   console.log("📡 Fetching real-time token prices...\n");
   let tokenPrices;
@@ -577,55 +334,52 @@ async function discoverHighLiquidityPairs() {
     console.warn("⚠️  CoinGecko API failed, using fallback prices\n");
     tokenPrices = FALLBACK_PRICES;
   }
-  
+
   // Load existing pairs
   const pairsFilePath = path.join(__dirname, "..", "..", "data", "pairs", "trading-pairs.json");
   let existingData = { pairs: [], stats: {} };
-  const existingPairsMap = new Map(); // Use Map to preserve enabled/disabled state
-  
+  const existingPairsMap = new Map();
+
   if (fs.existsSync(pairsFilePath)) {
     const fileContent = fs.readFileSync(pairsFilePath, "utf-8");
     existingData = JSON.parse(fileContent);
     existingData.pairs.forEach(p => {
-      existingPairsMap.set(p.name, p); // Store entire pair object
+      existingPairsMap.set(p.name, p);
     });
     console.log(`📋 Loaded ${existingData.pairs.length} existing pairs`);
     console.log(`   (${existingData.pairs.filter(p => !p.enabled).length} disabled pairs will be preserved)\n`);
   }
-  
+
   const tokenEntries = Object.entries(HIGH_LIQUIDITY_TOKENS);
   const newPairs = [];
   let checked = 0;
   let found = 0;
   let skipped = 0;
-  
+
   // Check all token combinations
   for (let i = 0; i < tokenEntries.length; i++) {
     for (let j = i + 1; j < tokenEntries.length; j++) {
       const [symbol0, address0] = tokenEntries[i];
       const [symbol1, address1] = tokenEntries[j];
-      const pairName = `${symbol0}/${symbol1}`;
-      
+      const pairName = `\( {symbol0}/ \){symbol1}`;
+
       // Skip if pair already exists (preserve enabled/disabled state)
       if (existingPairsMap.has(pairName)) {
         const existingPair = existingPairsMap.get(pairName);
         const status = existingPair.enabled ? "enabled" : "DISABLED";
-        console.log(`⏭️  ${pairName} - already exists (${status}, preserving state)`);
+        console.log(`⏭️  \( {pairName} - already exists ( \){status}, preserving state)`);
         skipped++;
         continue;
       }
-      
+
       checked++;
       console.log(`\n🔍 Checking ${pairName}...`);
-      
+
       // Check liquidity across all DEXes
       const dexResults = {};
       let validDexCount = 0;
-      
+
       for (const [dexKey, dexConfig] of Object.entries(DEX_FACTORIES)) {
-        // Skip Balancer and Curve for now (need special handling)
-        if (dexConfig.type === "weighted" || dexConfig.type === "stable") continue;
-        
         const pairInfo = await getPairInfo(
           dexKey,
           dexConfig,
@@ -635,52 +389,52 @@ async function discoverHighLiquidityPairs() {
           symbol0,
           symbol1
         );
-        
+
         if (pairInfo) {
           console.log(`   ✅ ${dexConfig.name}:`);
-          console.log(`      Liquidity: $${pairInfo.liquidityUSD.toLocaleString()}`);
-          console.log(`      Est. Volume: $${pairInfo.volumeUSD.toLocaleString()}`);
+          console.log(`      Liquidity: \]{pairInfo.liquidityUSD.toLocaleString()}`);
+          console.log(`      Est. Volume: \[ {pairInfo.volumeUSD.toLocaleString()}`);
           if (pairInfo.poolCount) {
             console.log(`      Pools: ${pairInfo.poolCount} (Fee tiers: ${pairInfo.feeTiers})`);
           }
-          
+
           // Check if meets thresholds
-          if (pairInfo.liquidityUSD >= MIN_LIQUIDITY_USD && 
+          if (pairInfo.liquidityUSD >= MIN_LIQUIDITY_USD &&
               pairInfo.volumeUSD >= MIN_VOLUME_24H_USD) {
             dexResults[dexKey] = pairInfo;
             validDexCount++;
           } else {
-            console.log(`      ⚠️  Below threshold (need $${MIN_LIQUIDITY_USD.toLocaleString()} liquidity & $${MIN_VOLUME_24H_USD.toLocaleString()} volume)`);
+            console.log(`      ⚠️  Below threshold (need \]{MIN_LIQUIDITY_USD.toLocaleString()} liquidity & \[ {MIN_VOLUME_24H_USD.toLocaleString()} volume)`);
           }
         } else {
           console.log(`   ❌ ${dexConfig.name}: Pair not found or error`);
         }
-        
+
         // Rate limiting
         await new Promise(resolve => setTimeout(resolve, 200));
       }
-      
+
       // Require presence on at least 2 DEXes
       if (validDexCount >= MIN_DEXES_REQUIRED) {
         const avgLiquidity = Object.values(dexResults).reduce((sum, d) => sum + d.liquidityUSD, 0) / validDexCount;
         const avgVolume = Object.values(dexResults).reduce((sum, d) => sum + d.volumeUSD, 0) / validDexCount;
-        
+
         console.log(`   ✅ QUALIFIED! Found on ${validDexCount} DEXes`);
-        console.log(`      Avg Liquidity: $${avgLiquidity.toLocaleString()}`);
-        console.log(`      Avg Volume: $${avgVolume.toLocaleString()}`);
-        
+        console.log(`      Avg Liquidity: \]{avgLiquidity.toLocaleString()}`);
+        console.log(`      Avg Volume: \[ {avgVolume.toLocaleString()}`);
+
         const liquidityByDex = {};
         Object.entries(dexResults).forEach(([dex, info]) => {
           liquidityByDex[dex] = Math.round(info.liquidityUSD);
         });
-        
+
         newPairs.push({
           name: pairName,
           token0: symbol0,
           token1: symbol1,
           token0Address: address0,
           token1Address: address1,
-          enabled: true, // NEW pairs are enabled by default
+          enabled: true,
           dexes: Object.keys(dexResults),
           estimatedLiquidity: liquidityByDex,
           averageLiquidity: Math.round(avgLiquidity),
@@ -693,7 +447,7 @@ async function discoverHighLiquidityPairs() {
       }
     }
   }
-  
+
   console.log("\n" + "=".repeat(70));
   console.log("📊 DISCOVERY SUMMARY");
   console.log("=".repeat(70));
@@ -702,10 +456,10 @@ async function discoverHighLiquidityPairs() {
   console.log(`   Found: ${found} new high-liquidity pairs`);
   console.log(`   Existing: ${existingData.pairs.length} pairs`);
   console.log(`   Total: ${existingData.pairs.length + found} pairs\n`);
-  
+
   // Merge: Keep ALL existing pairs (preserving enabled/disabled), add new pairs
   const allPairs = [...existingData.pairs, ...newPairs];
-  
+
   // Save updated pairs
   const outputData = {
     pairs: allPairs,
@@ -717,32 +471,32 @@ async function discoverHighLiquidityPairs() {
       lastUpdated: new Date().toISOString(),
       version: "v2",
       criteria: {
-        minLiquidityPerDex: `$${MIN_LIQUIDITY_USD.toLocaleString()}`,
-        minVolume24hPerDex: `$${MIN_VOLUME_24H_USD.toLocaleString()}`,
+        minLiquidityPerDex: ` \]{MIN_LIQUIDITY_USD.toLocaleString()}`,
+        minVolume24hPerDex: `\[ {MIN_VOLUME_24H_USD.toLocaleString()}`,
         minDexesRequired: MIN_DEXES_REQUIRED,
         dexesChecked: Object.keys(DEX_FACTORIES).map(k => DEX_FACTORIES[k].name),
         priceSource: "CoinGecko API (with fallback)",
       },
     },
   };
-  
+
   fs.writeFileSync(pairsFilePath, JSON.stringify(outputData, null, 2));
   console.log(`💾 Saved to ${pairsFilePath}`);
   console.log(`✅ Added ${found} new pairs, preserved ${skipped} existing pairs\n`);
-  
+
   // Print new pairs summary
   if (found > 0) {
     console.log("🆕 NEW PAIRS ADDED:");
     newPairs.forEach((p, idx) => {
       console.log(`   ${idx + 1}. ${p.name}`);
-      console.log(`      Liquidity: $${p.averageLiquidity.toLocaleString()}`);
+      console.log(`      Liquidity: \]{p.averageLiquidity.toLocaleString()}`);
       console.log(`      Volume: $${p.estimatedVolume24h.toLocaleString()}`);
       console.log(`      DEXes: ${p.dexes.join(", ")}`);
     });
     console.log();
   }
-  
-  // Print summary of existing disabled pairs (still preserved)
+
+  // Print summary of existing disabled pairs
   const disabledPairs = existingData.pairs.filter(p => !p.enabled);
   if (disabledPairs.length > 0) {
     console.log(`🔒 PRESERVED ${disabledPairs.length} DISABLED PAIRS:`);
