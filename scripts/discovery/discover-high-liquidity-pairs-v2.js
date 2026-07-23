@@ -32,6 +32,7 @@ dotenv.config(); // Load environment variables from .env
 // CONFIGURATION
 // ============================================================================
 
+
 const RPC_URL = process.env.POLYGON_RPC_URL || "https://polygon-mainnet.infura.io/v3/a77c27e993ab4566b5411a4964f437a7";
 const provider = new ethers.JsonRpcProvider(RPC_URL)
 
