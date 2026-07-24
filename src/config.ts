@@ -790,7 +790,8 @@ export const config = {
     ],
       
       // === NEW HIGH-LIQUIDITY PAIRS (Discovered via script) ===
-      {
+    [  
+    {
         token0: "USDC",
         token1: "WETH",
         enabled: false, // ✅ $1.67M liquidity, $836k volume
