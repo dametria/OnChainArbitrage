@@ -854,25 +854,25 @@ export const config = {
         name: "WETH/LINK",
         token0: "WETH",
         token1: "LINK",
-        enabled: false, // ✅ $26.7M liquidity, $13.3M volume
+        enabled: true, // ✅ $26.7M liquidity, $13.3M volume
       },
       {
         name: "WETH/CRV",
         token0: "WETH",
         token1: "CRV",
-        enabled: false, // ✅ $140M liquidity, $70M volume
+        enabled: true, // ✅ $140M liquidity, $70M volume
       },
       {
         name: "DAI/WETH",
         token0: "DAI",
         token1: "WETH",
-        enabled: false, // ✅ $97k liquidity (existing pair, keep)
+        enabled: true, // ✅ $97k liquidity (existing pair, keep)
       },
       {
         name: "DAI/WBTC",
         token0: "DAI",
         token1: "WBTC",
-        enabled: false, // ✅ Large liquidity (existing pair, keep)
+        enabled: true, // ✅ Large liquidity (existing pair, keep)
       },
       {
         name: "WETH/WBTC",
@@ -886,19 +886,19 @@ export const config = {
         name: "WETH/AAVE",
         token0: "WETH",
         token1: "AAVE",
-        enabled: false, // ✅ $2.1M liquidity, $43M volume (SushiSwap + Uniswap V3)
+        enabled: true, // ✅ $2.1M liquidity, $43M volume (SushiSwap + Uniswap V3)
       },
       {
         name: "WETH/SUSHI",
         token0: "WETH",
         token1: "SUSHI",
-        enabled: false, // ✅ $23.6M liquidity, $13.6M volume (SushiSwap + Uniswap V3)
+        enabled: true, // ✅ $23.6M liquidity, $13.6M volume (SushiSwap + Uniswap V3)
       },
       {
         name: "WETH/GHST",
         token0: "WETH",
         token1: "GHST",
-        enabled: false, // ✅ $175M liquidity, $87.8M volume (QuickSwap + Uniswap V3) - MASSIVE!
+        enabled: true, // ✅ $175M liquidity, $87.8M volume (QuickSwap + Uniswap V3) - MASSIVE!
       },
       
       // === DISABLED: GHST and other low-liquidity gaming/DeFi tokens ===
@@ -906,7 +906,7 @@ export const config = {
         name: "GHST/USDC",
         token0: "GHST",
         token1: "USDC",
-        enabled: true, // ❌ DISABLED - Showed fake pools with 324% spread
+        enabled: false, // ❌ DISABLED - Showed fake pools with 324% spread
       },
       
       // === DISABLED: TOP 15 TOKENS (Avoiding MEV competition) ===
@@ -952,7 +952,7 @@ export const config = {
         name: "LINK/WMATIC",
         token0: "LINK",
         token1: "WMATIC",
-        enabled: true, // ❌ LINK is #3 in top 15 + 22.35% spread fake pool!
+        enabled: false, // ❌ LINK is #3 in top 15 + 22.35% spread fake pool!
       },
       
       // === AAVE PAIRS - TOP 15 TOKEN (#6) ===
@@ -972,7 +972,7 @@ export const config = {
         name: "AAVE/WMATIC",
         token0: "AAVE",
         token1: "WMATIC",
-        enabled: true, // ❌ AAVE is #6 in top 15 + 6.94% spread suspicious
+        enabled: false, // ❌ AAVE is #6 in top 15 + 6.94% spread suspicious
       },
       
       // === UNI PAIRS - TOP 15 TOKEN (#5) ===
@@ -992,7 +992,7 @@ export const config = {
         name: "UNI/WMATIC",
         token0: "UNI",
         token1: "WMATIC",
-        enabled: true, // ❌ UNI is #5 in top 15 + 99.87% spread fake pool!
+        enabled: false, // ❌ UNI is #5 in top 15 + 99.87% spread fake pool!
       },
       
       // === STABLECOIN PAIRS ===
@@ -1046,13 +1046,13 @@ export const config = {
         name: "SAND/USDC",
         token0: "SAND",
         token1: "USDC",
-        enabled: true, // ❌ SAND is #10 in top 15 + 13675% spread fake pool!
+        enabled: false, // ❌ SAND is #10 in top 15 + 13675% spread fake pool!
       },
       {
         name: "MANA/USDC",
         token0: "MANA",
         token1: "USDC",
-        enabled: true, // ❌ MANA is #11 in top 15 + 14.23% spread fake pool!
+        enabled: false, // ❌ MANA is #11 in top 15 + 14.23% spread fake pool!
       },
       {
         name: "SAND/WMATIC",
@@ -1072,7 +1072,7 @@ export const config = {
         name: "SUSHI/WMATIC",
         token0: "SUSHI",
         token1: "WMATIC",
-        enabled: true, // ❌ DISABLED - Showed <$500 liquidity in tests
+        enabled: false, // ❌ DISABLED - Showed <$500 liquidity in tests
       },
       {
         name: "CRV/WMATIC",
@@ -1104,7 +1104,7 @@ export const config = {
         name: "POL/USDC",
         token0: "POL",
         token1: "USDC",
-        enabled: true, // ❌ POL is #1 in top 15 ($2B market cap) + No pools on either DEX!
+        enabled: false, // ❌ POL is #1 in top 15 ($2B market cap) + No pools on either DEX!
       },
       {
         name: "QUICK/WMATIC",
