@@ -787,7 +787,6 @@ export const config = {
         token1: "USDT",
         enabled: true , // ⭐⭐
       }
-      }
     ],
       
       // === NEW HIGH-LIQUIDITY PAIRS (Discovered via script) ===
@@ -1272,7 +1271,6 @@ export const config = {
         token1: "CRV",
         enabled: false, // ❌ DISABLED - Expansion pair, likely low liquidity
       },
-    ],
  ============================================================================
     // BSC TRADING PAIRS (BSC Mainnet - Chain ID 56)
     // ============================================================================
@@ -1498,7 +1496,8 @@ export const config = {
         token0: "WBTC",
         token1: "USDC",
         enabled: false, // ❌ DISABLED - Major coin vs stablecoin (following BSC strategy)
-      },
+      }
+    ],
       
       // === EXCLUDED PAIRS (Following strategy) ===
       // ❌ WETH/USDC - Native vs stablecoin
@@ -1511,7 +1510,6 @@ export const config = {
     
     // Dry run mode (simulate without executing)
     dryRun: process.env.ENABLE_DRY_RUN === "false",
-  },
 
   // ============================================================================
   // SAFETY LIMITS (Adjusted for Polygon)
@@ -1540,8 +1538,7 @@ export const config = {
       botToken: process.env.TELEGRAM_BOT_TOKEN || "",
       chatId: process.env.TELEGRAM_CHAT_ID || "",
     },
-  },
-};
+  };
 
 // ============================================================================
 // VALIDATION
