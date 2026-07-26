@@ -17,7 +17,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Read config.ts
-const configPath = path.join(__dirname, '..', 'src', 'config.ts');
+const configPath = path.join(__dirname, '..', '..', 'src', 'config.ts');
 const configContent = fs.readFileSync(configPath, 'utf8');
 
 // Extract tokens section
