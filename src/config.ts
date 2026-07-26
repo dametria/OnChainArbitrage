@@ -792,6 +792,7 @@ export const config = {
       
       // === NEW HIGH-LIQUIDITY PAIRS (Discovered via script) ===
       {
+        name: "USDC/WETH", 
         token0: "USDC",
         token1: "WETH",
         enabled: false, // ✅ $1.67M liquidity, $836k volume
@@ -1110,7 +1111,7 @@ export const config = {
         name: "QUICK/WMATIC",
         token0: "QUICK",
         token1: "WMATIC",
-        enabled: true, // ❌ No SushiSwap pool!
+        enabled: false, // ❌ No SushiSwap pool!
       },
       
       // === NEW PAIRS - SCALING UP! ===
@@ -1272,8 +1273,7 @@ export const config = {
         enabled: false, // ❌ DISABLED - Expansion pair, likely low liquidity
       },
     ],
-
-    // ============================================================================
+ ============================================================================
     // BSC TRADING PAIRS (BSC Mainnet - Chain ID 56)
     // ============================================================================
     watchedPairsBSC: [
@@ -1410,7 +1410,6 @@ export const config = {
       
       // === NO STABLECOIN-VS-STABLECOIN PAIRS ===
       // User explicitly requested NO stablecoin-vs-stablecoin pairs
-    ],
 
     // ============================================================================
     // BASE TRADING PAIRS (Base Mainnet - Chain ID 8453)
@@ -1506,7 +1505,6 @@ export const config = {
       // ❌ WETH/USDT - Native vs stablecoin
       // ❌ WETH/DAI - Native vs stablecoin
       // ❌ NO stablecoin-vs-stablecoin pairs
-    ],
 
     // Enable detailed logging
     debugMode: process.env.ENABLE_DEBUG === "true",
