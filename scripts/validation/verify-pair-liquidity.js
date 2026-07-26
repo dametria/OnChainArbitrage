@@ -7,7 +7,7 @@ const { ethers } = require('ethers');
 require('dotenv').config();
 
 // Polygon RPC
-const RPC_URL = process.env.POLYGON_RPC_URL || 'https://polygon-rpc.com';
+const RPC_URL = process.env.POLYGON_RPC_URL;
 console.log('🔗 Using RPC:', RPC_URL);
 
 const provider = new ethers.JsonRpcProvider(RPC_URL, {
