@@ -154,7 +154,7 @@ export class TradeExecutor {
     logger.debug(`  Limiting liquidity: $${limitingLiquidity.toFixed(0)}`);
 
     // ✅ HIGH-LIQUIDITY FOCUS: Filter out pools that are too small (minimum $5000 liquidity)
-    const minLiquidity = config.trading.minPoolLiquidity || 5000;
+    const minLiquidity = config.trading.minPoolLiquidity || 1000;
     if (limitingLiquidity < minLiquidity) {
       logger.warning(`⚠️ Pool too small! $${limitingLiquidity.toFixed(0)} < $${minLiquidity} minimum liquidity`);
       logger.warning(`   Skipping opportunity - need at least $${minLiquidity} liquidity for profitable trades`);
