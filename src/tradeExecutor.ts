@@ -726,9 +726,10 @@ const tx = await this.contract.executeArbitrage(
   }
 
   /**
-   * Get contract statistics
-   */
-  async getContractStats(): Promise<ContractStats> {
+   async getContractStats(): Promise<ContractStats> {
+  const maxRetries = 3;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const stats = await this.contract.getStats();
       return {
@@ -736,14 +737,26 @@ const tx = await this.contract.executeArbitrage(
         totalTrades: stats[1],
         isPaused: stats[2],
       };
-    } catch (error) {
-      logger.error("Failed to get contract stats", error);
-      return {
-        totalProfit: 0n,
-        totalTrades: 0n,
-        isPaused: false,
-      };
+    } catch (error: any) {
+      logger.warning(`Failed to get contract stats (attempt \( {attempt}/ \){maxRetries})`, error?.shortMessage || error?.message);
+
+      if (attempt === maxRetries) {
+        logger.error("Failed to get contract stats after retries", error);
+        return {
+          totalProfit: 0n,
+          totalTrades: 0n,
+          isPaused: false,
+        };
+      }
+
+      // short backoff
+      await new Promise(r => setTimeout(r, 400 * attempt));
     }
+  }
+
+  // TypeScript safety
+  return { totalProfit: 0n, totalTrades: 0n, isPaused: false };
+}
   }
 
   /**
