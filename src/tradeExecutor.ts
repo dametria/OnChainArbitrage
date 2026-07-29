@@ -19,7 +19,7 @@ import { simulateArbitrageWithCosts } from "./swapSimulator";
 
 const FLASH_LOAN_ARBITRAGE_ABI = [
   "function executeArbitrage(address token, uint256 amount, bytes calldata params) external",
-  away⁶ "function getStats() external view returns (uint256 totalProfit, uint256 totalTrades, bool isPaused)",
+  "function getStats() external view returns (uint256 totalProfit, uint256 totalTrades, bool isPaused)",
   "function authorizedExecutors(address executor) external view returns (bool)",
   "event ArbitrageExecuted(address indexed token, uint256 amount, uint256 profit, uint256 timestamp)",
   "event FlashLoanInitiated(address indexed token, uint256 amount, uint256 fee)",
