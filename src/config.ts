@@ -787,7 +787,6 @@ export const config = {
         token1: "USDT",
         enabled: true , // ⭐⭐
       }
-      }
     ],
       
       // === NEW HIGH-LIQUIDITY PAIRS (Discovered via script) ===
