@@ -772,13 +772,17 @@ const tx = await this.contract.executeArbitrage(
   }
 
   /**
-   * Get wallet balance
-   */
-  async getBalance(): Promise<string> {
-    const balance = await this.provider.getBalance(this.wallet.address);
-    return ethers.formatEther(balance);
+   async function getBalanceWithRetry(provider: ethers.Provider, address: string, retries = 3) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await provider.getBalance(address);
+    } catch (err: any) {
+      if (i === retries - 1) throw err;
+      console.warn(`getBalance failed (attempt ${i + 1}), retrying...`);
+      await new Promise(r => setTimeout(r, 500 * (i + 1)));
+    }
   }
-
+}
   /**
    * Check if wallet has sufficient balance for gas
    */
