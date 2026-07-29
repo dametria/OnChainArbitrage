@@ -5,6 +5,7 @@
  * It handles transaction building, gas estimation, and error handling.
  */
 
+import { getPolygonFeeData } from "./src/gas";  
 import { ethers } from "ethers";
 import { config } from "./config";
 import { logger } from "./logger";
@@ -547,39 +548,40 @@ export class TradeExecutor {
       }
 
       // Estimate gas
-      const gasEstimate = await this.contract.executeArbitrage.estimateGas(
-        opportunity.pair.token0Address,
-        flashLoanAmount,
-        params
-      );
+const gasEstimate = await this.contract.executeArbitrage.estimateGas(
+  opportunity.pair.token0Address,
+  flashLoanAmount,
+  params
+);
 
-      logger.debug(`Gas estimate: ${gasEstimate.toString()}`);
+logger.debug(`Gas estimate: ${gasEstimate.toString()}`);
 
-      // Get current gas price
-      const feeData = await this.provider.getFeeData();
-      const maxGasPriceWei = ethers.parseUnits(
-        config.trading.maxGasPrice.toString(),
-        "gwei"
-      );
+// Get robust fee data (handles Polygon Gas Station failures)
+const feeData = await getPolygonFeeData(this.provider);
 
-      // Check if gas price is acceptable
-      if (feeData.gasPrice && feeData.gasPrice > maxGasPriceWei) {
-        throw new Error(
-          `Gas price too high: ${ethers.formatUnits(feeData.gasPrice, "gwei")} Gwei`
-        );
-      }
+const maxGasPriceWei = ethers.parseUnits(
+  config.trading.maxGasPrice.toString(),
+  "gwei"
+);
 
-      // Execute transaction
-      const tx = await this.contract.executeArbitrage(
-        opportunity.pair.token0Address,
-        flashLoanAmount,
-        params,
-        {
-          gasLimit: (gasEstimate * 120n) / 100n, // Add 20% buffer
-          gasPrice: feeData.gasPrice,
-        }
-      );
+  // Safety check
+if (feeData.maxFeePerGas && feeData.maxFeePerGas > maxGasPriceWei) {
+  throw new Error(
+    `Gas price too high: ${ethers.formatUnits(feeData.maxFeePerGas, "gwei")} Gwei`
+  );
+}
 
+  // Execute transaction (EIP-1559 style)
+const tx = await this.contract.executeArbitrage(
+  opportunity.pair.token0Address,
+  flashLoanAmount,
+  params,
+  {
+    gasLimit: (gasEstimate * 120n) / 100n, // 20% buffer
+    maxFeePerGas: feeData.maxFeePerGas,
+    maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
+  }
+);
       logger.info(`Transaction sent: ${tx.hash}`);
       logger.info("Waiting for confirmation...");
 
