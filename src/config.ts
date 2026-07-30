@@ -1270,8 +1270,8 @@ export const config = {
         token0: "MAI",
         token1: "CRV",
         enabled: false, // ❌ DISABLED - Expansion pair, likely low liquidity
-      },
-    ];
+      }
+    ],
 
 //========================================================
 //==================
