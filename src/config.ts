@@ -1512,7 +1512,8 @@ export const config = {
     debugMode: process.env.ENABLE_DEBUG === "true",
     
     // Dry run mode (simulate without executing)
-    dryRun: process.env.ENABLE_DRY_RUN === "false",
+    dryRun: process.env.ENABLE_DRY_RUN !== "false",
+  },
 
   // ============================================================================
   // SAFETY LIMITS (Adjusted for Polygon)
