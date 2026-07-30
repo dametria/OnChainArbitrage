@@ -218,6 +218,8 @@ export class PriceMonitor {
   private routerContract: ethers.Contract;
   private v3QuoterContract: ethers.Contract;
   private v3FactoryContract: ethers.Contract;
+  private currentPairIndex = 0;
+  private readonly PAIRS_PER_CYCLE = 8;
 
   constructor(provider: ethers.JsonRpcProvider) {
     this.provider = provider;
@@ -828,19 +830,45 @@ export class PriceMonitor {
   }
 
   /**
-   * Scan all pairs for arbitrage opportunities
-   */
-  async scanForOpportunities(): Promise<ArbitrageOpportunity[]> {
-    logger.debug("Scanning for arbitrage opportunities...");
-
-    const opportunities = await Promise.all(
-      this.pairs.map((pair) => this.findArbitrageOpportunity(pair))
-    );
-
-    return opportunities.filter(
-      (opp): opp is ArbitrageOpportunity => opp !== null && opp.viable
-    );
+ * Scan a rotating batch of pairs for arbitrage opportunities.
+ * Only checks PAIRS_PER_CYCLE pairs each cycle, then advances the window.
+ * With \~43 pairs and batch=8 this covers the full list roughly every 6 cycles.
+ */
+async scanForOpportunities(): Promise<ArbitrageOpportunity[]> {
+  if (this.pairs.length === 0) {
+    logger.debug("No pairs to scan");
+    return [];
   }
+
+  const batchSize = Math.min(this.PAIRS_PER_CYCLE, this.pairs.length);
+
+  // Build the next batch (wraps around when we reach the end of the list)
+  const batch: TokenPair[] = [];
+  for (let i = 0; i < batchSize; i++) {
+    const idx = (this.currentPairIndex + i) % this.pairs.length;
+    batch.push(this.pairs[idx]);
+  }
+
+  // Remember the start of this batch for logging
+  const startIdx = this.currentPairIndex;
+
+  // Advance the window for the next cycle
+  this.currentPairIndex = (this.currentPairIndex + batchSize) % this.pairs.length;
+
+  const pairNames = batch.map((p) => p.name).join(", ");
+  logger.debug(
+    `Scanning batch of \( {batch.length}/ \){this.pairs.length} pairs ` +
+    `(start index ${startIdx}): ${pairNames}`
+  );
+
+  const opportunities = await Promise.all(
+    batch.map((pair) => this.findArbitrageOpportunity(pair))
+  );
+
+  return opportunities.filter(
+    (opp): opp is ArbitrageOpportunity => opp !== null && opp.viable
+  );
+}
 
   /**
    * Get all monitored pairs
