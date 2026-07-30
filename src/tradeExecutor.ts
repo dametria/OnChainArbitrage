@@ -5,7 +5,7 @@
  * It handles transaction building, gas estimation, and error handling.
  */
 
-import { getPolygonFeeData } from ".0/gas";  
+import { getPolygonFeeData } from "./gas";  
 import { ethers } from "ethers";
 import { config } from "./config";
 import { logger } from "./logger";
