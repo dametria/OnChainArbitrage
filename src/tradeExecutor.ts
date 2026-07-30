@@ -725,10 +725,10 @@ const tx = await this.contract.executeArbitrage(
     }
   }
 
-   async getContractStats(): Promise<ContractStats> {
-  const maxRetries = 3;
-
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+     /**
+   * Get contract statistics
+   */
+  async getContractStats(): Promise<ContractStats> {
     try {
       const stats = await this.contract.getStats();
       return {
@@ -736,31 +736,19 @@ const tx = await this.contract.executeArbitrage(
         totalTrades: stats[1],
         isPaused: stats[2],
       };
-    } catch (error: any) {
-      logger.warning(`Failed to get contract stats (attempt \( {attempt}/ \){maxRetries})`, error?.shortMessage || error?.message);
-
-      if (attempt === maxRetries) {
-        logger.error("Failed to get contract stats after retries", error);
-        return {
-          totalProfit: 0n,
-          totalTrades: 0n,
-          isPaused: false,
-        };
-      }
-
-      // short backoff
-      await new Promise(r => setTimeout(r, 400 * attempt));
+    } catch (error) {
+      logger.error("Failed to get contract stats", error);
+      return {
+        totalProfit: 0n,
+        totalTrades: 0n,
+        isPaused: false,
+      };
     }
-  }
-
-  // TypeScript safety
-  return { totalProfit: 0n, totalTrades: 0n, isPaused: false };
-}
   }
 
   /**
    * Check if wallet is authorized to execute trades
-   
+   */
   async isAuthorized(): Promise<boolean> {
     try {
       return await this.contract.authorizedExecutors(this.wallet.address);
@@ -770,26 +758,9 @@ const tx = await this.contract.executeArbitrage(
     }
   }
 
-  async getBalanceWithRetry(
-    provider: ethers.Provider,
-    address: string,
-    retries = 3
-  ): Promise<bigint> {
-    for (let i = 0; i < retries; i++) {
-      try {
-        return await provider.getBalance(address);
-      } catch (err: any) {
-        if (i === retries - 1) throw err;
-        console.warn(`getBalance failed (attempt ${i + 1}), retrying...`);
-        await new Promise((r) => setTimeout(r, 500 * (i + 1)));
-      }
-    }
-    throw new Error("getBalanceWithRetry failed");
-  }
-
   /**
    * Get wallet balance
-   
+   */
   async getBalance(): Promise<string> {
     const balance = await this.provider.getBalance(this.wallet.address);
     return ethers.formatEther(balance);
@@ -797,11 +768,11 @@ const tx = await this.contract.executeArbitrage(
 
   /**
    * Check if wallet has sufficient balance for gas
-   
+   */
   async hasSufficientBalance(): Promise<boolean> {
     const balance = await this.getBalance();
     return parseFloat(balance) >= config.safety.minWalletBalance;
   }
 }
-*/
+
 export default TradeExecutor;
