@@ -769,7 +769,7 @@ const tx = await this.contract.executeArbitrage(
       return false;
     }
   }
-*/
+
   async getBalanceWithRetry(
     provider: ethers.Provider,
     address: string,
@@ -794,7 +794,7 @@ const tx = await this.contract.executeArbitrage(
     const balance = await this.provider.getBalance(this.wallet.address);
     return ethers.formatEther(balance);
   }
-
+*/
   /**
    * Check if wallet has sufficient balance for gas
    */
