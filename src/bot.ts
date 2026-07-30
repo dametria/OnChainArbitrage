@@ -16,13 +16,13 @@
  */
 
 import { ethers } from "ethers";
-import { config, validateConfig } from "./config";
-import { logger } from "./logger";
-import { PriceMonitor } from "./priceMonitor";
-import { TradeExecutor } from "./tradeExecutor";
-import type { ArbitrageOpportunity } from "./priceMonitor";
-import { getLogger, stopLogger } from "./dataLogger";
-import { startScheduler, stopScheduler, getScheduler } from "./pairScheduler";
+import { config, validateConfig } from "./config.js";
+import { logger } from "./logger.js";
+import { PriceMonitor } from "./priceMonitor.js";
+import { TradeExecutor } from "./tradeExecutor.js";
+import type { ArbitrageOpportunity } from "./priceMonitor.js";
+import { getLogger, stopLogger } from "./dataLogger.js";
+import { startScheduler, stopScheduler, getScheduler } from "./pairScheduler.js";
 
 // ============================================================================
 // BOT STATISTICS

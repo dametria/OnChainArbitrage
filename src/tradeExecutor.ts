@@ -5,13 +5,12 @@
  * It handles transaction building, gas estimation, and error handling.
  */
 
-import { getPolygonFeeData } from "./src/gas";   
 import { ethers } from "ethers";
-import { config } from "./config";
-import { logger } from "./logger";
-import { ArbitrageOpportunity } from "./priceMonitor";
-import { getDexRouter, getDexType, getDexFee, isDexPairEfficient } from "./dexRouter";
-import { simulateArbitrageWithCosts } from "./swapSimulator";
+import { config } from "./config.js";
+import { logger } from "./logger.js";
+import { ArbitrageOpportunity } from "./priceMonitor.js";
+import { getDexRouter, getDexType, getDexFee, isDexPairEfficient } from "./dexRouter.js";
+import { simulateArbitrageWithCosts } from "./swapSimulator.js";
 
 // ============================================================================
 // FLASH LOAN ARBITRAGE CONTRACT ABI
@@ -556,8 +555,8 @@ const gasEstimate = await this.contract.executeArbitrage.estimateGas(
 
 logger.debug(`Gas estimate: ${gasEstimate.toString()}`);
 
-// Get robust fee data (handles Polygon Gas Station failures)
-const feeData = await getPolygonFeeData(this.provider);
+// Get fee data from provider
+const feeData = await this.provider.getFeeData();
 
 const maxGasPriceWei = ethers.parseUnits(
   config.trading.maxGasPrice.toString(),

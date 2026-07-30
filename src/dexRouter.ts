@@ -5,8 +5,8 @@
  * This ensures we trade on the CORRECT DEXes, not just Uniswap!
  */
 
-import { config } from "./config";
-import { getChainConfig } from "./multichainConfig";
+import { config } from "./config.js";
+import { getChainConfig } from "./multichainConfig.js";
 
 // ============================================================================
 // DEX ROUTER MAPPING

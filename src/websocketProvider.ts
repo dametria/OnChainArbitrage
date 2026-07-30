@@ -1,5 +1,5 @@
 import { ethers, WebSocketProvider, Log } from 'ethers';
-import logger from './logger';
+import logger from './logger.js';
 
 /**
  * WebSocket Provider Manager

@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
-import logger from './logger';
-import { config } from './config';
+import logger from './logger.js';
+import { config } from './config.js';
 
 const ROUTER_V2_ABI = [
   'function getAmountsOut(uint amountIn, address[] memory path) view returns (uint[] memory amounts)'

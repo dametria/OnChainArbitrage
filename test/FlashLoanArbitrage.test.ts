@@ -5,7 +5,6 @@
 // AFTER (ESM - already compatible):
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { FlashLoanArbitrage } from "../typechain-types";
 
 // Tests remain the same
 

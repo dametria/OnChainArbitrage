@@ -786,11 +786,11 @@ export const config = {
         token0: "POL",
         token1: "USDT",
         enabled: true , // ⭐⭐
-      }
-    ],
-      
+      },
+
       // === NEW HIGH-LIQUIDITY PAIRS (Discovered via script) ===
       {
+        name: "USDC/WETH",
         token0: "USDC",
         token1: "WETH",
         enabled: false, // ✅ $1.67M liquidity, $836k volume

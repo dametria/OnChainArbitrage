@@ -1,8 +1,8 @@
 import { ethers, Contract, Log, JsonRpcProvider } from 'ethers';
-import { wssManager } from './websocketProvider';
-import { loadTradingPairs, TradingPair as DynamicTradingPair } from './dynamicPairs';
-import config from './config';
-import logger from './logger';
+import { wssManager } from './websocketProvider.js';
+import { loadTradingPairs, TradingPair as DynamicTradingPair } from './dynamicPairs.js';
+import config from './config.js';
+import logger from './logger.js';
 
 /**
  * Event-Driven Price Monitor (Multi-Chain Support)

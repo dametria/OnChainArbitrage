@@ -15,17 +15,19 @@
     "declarationMap": true,
     "sourceMap": true,
     "types": ["node", "mocha", "chai"],
-    "typeRoots": ["./node_modules/@types", "./typechain-types"]
+    "typeRoots": ["./node_modules/@types"]
   },
-  "include": ["./src/**/*", "./scripts/**/*", "./test/**/*"],
+  "include": ["./src/**/*", "./scripts/**/*", "./test/**/*", "./types/**/*"],
   "exclude": [
     "node_modules",
     "dist",
     "cache",
-    "artifacts"
+    "artifacts",
+    "typechain-types"
   ],
   "ts-node": {
     "esm": true,
-    "experimentalSpecifierResolution": "node"
+    "experimentalSpecifierResolution": "node",
+    "moduleResolution": "node"
   }
 }

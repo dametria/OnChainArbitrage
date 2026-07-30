@@ -12,8 +12,8 @@
 
 import { spawn } from 'child_process';
 import * as path from 'path';
-import { logger } from './logger';
-import { reloadTradingPairs } from './dynamicPairs';
+import { logger } from './logger.js';
+import { reloadTradingPairs } from './dynamicPairs.js';
 
 export class PairUpdateScheduler {
   private intervalId: NodeJS.Timeout | null = null;

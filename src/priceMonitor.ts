@@ -11,10 +11,10 @@
  */
 
 import { ethers } from "ethers";
-import { config, getTokenAddress } from "./config";
-import { logger } from "./logger";
-import { getLogger } from "./dataLogger";
-import { loadTradingPairs, watchPairsFile, type TradingPair as DynamicPair } from "./dynamicPairs";
+import { config, getTokenAddress } from "./config.js";
+import { logger } from "./logger.js";
+import { getLogger } from "./dataLogger.js";
+import { loadTradingPairs, watchPairsFile, type TradingPair as DynamicPair } from "./dynamicPairs.js";
 
 // ============================================================================
 // TYPES & INTERFACES

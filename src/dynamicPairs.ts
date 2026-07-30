@@ -7,7 +7,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { config } from './config';
+import { config } from './config.js';
 
 export interface TradingPair {
   name: string;

@@ -17,8 +17,8 @@
  * 5. MEV protection for complex paths
  */
 
-import { logger } from "./logger";
-import { getDexFee } from "./dexRouter";
+import { logger } from "./logger.js";
+import { getDexFee } from "./dexRouter.js";
 
 /**
  * Triangular route structure
