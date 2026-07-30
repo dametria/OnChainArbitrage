@@ -794,14 +794,14 @@ const tx = await this.contract.executeArbitrage(
     const balance = await this.provider.getBalance(this.wallet.address);
     return ethers.formatEther(balance);
   }
-*/
+
   /**
    * Check if wallet has sufficient balance for gas
-   */
+   
   async hasSufficientBalance(): Promise<boolean> {
     const balance = await this.getBalance();
     return parseFloat(balance) >= config.safety.minWalletBalance;
   }
 }
-
+*/
 export default TradeExecutor;
