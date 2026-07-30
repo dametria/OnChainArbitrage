@@ -1,4 +1,4 @@
-/**
+sn /**
  * ⚡ Trade Executor
  * 
  * This module executes arbitrage trades by calling your FlashLoanArbitrage contract.
@@ -760,7 +760,7 @@ const tx = await this.contract.executeArbitrage(
 
   /**
    * Check if wallet is authorized to execute trades
-   */
+   
   async isAuthorized(): Promise<boolean> {
     try {
       return await this.contract.authorizedExecutors(this.wallet.address);
@@ -769,7 +769,7 @@ const tx = await this.contract.executeArbitrage(
       return false;
     }
   }
-
+*/
   async getBalanceWithRetry(
     provider: ethers.Provider,
     address: string,
