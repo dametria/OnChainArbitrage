@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "commonjs",
+    "moduleResolution": "node",
     "lib": ["ES2022"],
     "outDir": "./dist",
     "rootDir": "./",
@@ -12,20 +12,9 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "declaration": true,
-    "declarationMap": true,
     "sourceMap": true,
-    "types": ["node", "mocha", "chai"],
-    "typeRoots": ["./node_modules/@types", "./typechain-types"]
+    "types": ["node", "mocha", "chai"]
   },
-  "include": ["./src/**/*", "./scripts/**/*", "./test/**/*"],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "cache",
-    "artifacts"
-  ],
-  "ts-node": {
-    "esm": true,
-    "experimentalSpecifierResolution": "node"
-  }
+  "include": ["./src/**/*", "./scripts/**/*", "./test/**/*", "./hardhat.config.ts"],
+  "exclude": ["node_modules", "dist", "cache", "artifacts"]
 }
