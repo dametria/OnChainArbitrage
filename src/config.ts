@@ -1529,7 +1529,7 @@ export const config = {
 
     // Minimum balance to keep in wallet (in MATIC)
     // For flash loans, gas is paid from contract balance, not wallet!
-    minWalletBalance: 0.01, // Just need enough to sign transactions (~$0.004)
+    minWalletBalance: 0.01, // Just need enough to sign transactions (\~$0.004)
   },
 
   // ============================================================================
@@ -1540,8 +1540,9 @@ export const config = {
     telegram: {
       botToken: process.env.TELEGRAM_BOT_TOKEN || "",
       chatId: process.env.TELEGRAM_CHAT_ID || "",
-    }
-  }
+    },
+  },
+};   // ← THIS closes `export const config = { ... }`
 
 // ============================================================================
 // VALIDATION
