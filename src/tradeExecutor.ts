@@ -789,7 +789,7 @@ const tx = await this.contract.executeArbitrage(
 
   /**
    * Get wallet balance
-   */
+   
   async getBalance(): Promise<string> {
     const balance = await this.provider.getBalance(this.wallet.address);
     return ethers.formatEther(balance);
