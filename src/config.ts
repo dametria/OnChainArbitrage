@@ -423,7 +423,7 @@ export const config = {
         name: "WBTC/USDC",
         token0: "WBTC",
         token1: "USDC",
-        enabled: true , // ⭐⭐⭐
+        enabled: false , // ⭐⭐⭐
       },
       {
         name: "WBTC/WETH",
@@ -435,7 +435,7 @@ export const config = {
         name: "WBTC/USDT",
         token0: "WBTC",
         token1: "USDT",
-        enabled: true , // ⭐⭐⭐
+        enabled: false , // ⭐⭐⭐
       },
       {
         name: "DAI/WMATIC",
@@ -461,7 +461,7 @@ export const config = {
         name: "LINK/USDC",
         token0: "LINK",
         token1: "USDC",
-        enabled: true , // ⭐⭐
+        enabled: false , // ⭐⭐
       },
       {
         name: "LINK/WETH",
@@ -473,7 +473,7 @@ export const config = {
         name: "LINK/USDT",
         token0: "LINK",
         token1: "USDT",
-        enabled: true , // ⭐⭐
+        enabled: false , // ⭐⭐
       },
       {
         name: "AAVE/WMATIC",
@@ -485,7 +485,7 @@ export const config = {
         name: "AAVE/USDC",
         token0: "AAVE",
         token1: "USDC",
-        enabled: true , // ⭐⭐
+        enabled: false , // ⭐⭐
       },
       {
         name: "AAVE/WETH",
@@ -497,7 +497,7 @@ export const config = {
         name: "AAVE/USDT",
         token0: "AAVE",
         token1: "USDT",
-        enabled: true , // ⭐⭐
+        enabled: false , // ⭐⭐
       },
       {
         name: "UNI/WMATIC",
@@ -509,7 +509,7 @@ export const config = {
         name: "UNI/USDC",
         token0: "UNI",
         token1: "USDC",
-        enabled: true , // ⭐⭐
+        enabled: false , // ⭐⭐
       },
       {
         name: "UNI/WETH",
@@ -521,7 +521,7 @@ export const config = {
         name: "UNI/USDT",
         token0: "UNI",
         token1: "USDT",
-        enabled: true , // ⭐⭐
+        enabled: false , // ⭐⭐
       },
       {
         name: "CRV/WMATIC",
@@ -533,7 +533,7 @@ export const config = {
         name: "CRV/USDC",
         token0: "CRV",
         token1: "USDC",
-        enabled: true , // ⭐⭐
+        enabled: false , // ⭐⭐
       },
       {
         name: "CRV/WETH",
@@ -545,7 +545,7 @@ export const config = {
         name: "CRV/USDT",
         token0: "CRV",
         token1: "USDT",
-        enabled: true , // ⭐⭐
+        enabled: false , // ⭐⭐
       },
       {
         name: "SUSHI/WMATIC",
@@ -557,7 +557,7 @@ export const config = {
         name: "SUSHI/USDC",
         token0: "SUSHI",
         token1: "USDC",
-        enabled: true , // ⭐⭐
+        enabled: false , // ⭐⭐
       },
       {
         name: "SUSHI/WETH",
@@ -569,7 +569,7 @@ export const config = {
         name: "SUSHI/USDT",
         token0: "SUSHI",
         token1: "USDT",
-        enabled: true , // ⭐⭐
+        enabled: false , // ⭐⭐
       },
       {
         name: "BAL/WMATIC",
@@ -581,7 +581,7 @@ export const config = {
         name: "BAL/USDC",
         token0: "BAL",
         token1: "USDC",
-        enabled: true , // ⭐⭐
+        enabled: false , // ⭐⭐
       },
       {
         name: "BAL/WETH",
@@ -593,7 +593,7 @@ export const config = {
         name: "BAL/USDT",
         token0: "BAL",
         token1: "USDT",
-        enabled: true , // ⭐⭐
+        enabled: false , // ⭐⭐
       },
       {
         name: "COMP/WMATIC",
@@ -605,7 +605,7 @@ export const config = {
         name: "COMP/USDC",
         token0: "COMP",
         token1: "USDC",
-        enabled: true , // ⭐⭐
+        enabled: false , // ⭐⭐
       },
       {
         name: "COMP/WETH",
@@ -617,7 +617,7 @@ export const config = {
         name: "COMP/USDT",
         token0: "COMP",
         token1: "USDT",
-        enabled: true , // ⭐⭐
+        enabled: false , // ⭐⭐
       },
       {
         name: "MKR/WMATIC",
@@ -629,7 +629,7 @@ export const config = {
         name: "MKR/USDC",
         token0: "MKR",
         token1: "USDC",
-        enabled: true , // ⭐⭐
+        enabled: false , // ⭐⭐
       },
       {
         name: "MKR/WETH",
@@ -641,7 +641,7 @@ export const config = {
         name: "MKR/USDT",
         token0: "MKR",
         token1: "USDT",
-        enabled: true , // ⭐⭐
+        enabled: false , // ⭐⭐
       },
       {
         name: "SNX/WMATIC",
@@ -653,7 +653,7 @@ export const config = {
         name: "SNX/USDC",
         token0: "SNX",
         token1: "USDC",
-        enabled: true , // ⭐⭐
+        enabled: false , // ⭐⭐
       },
       {
         name: "SNX/WETH",
@@ -665,7 +665,7 @@ export const config = {
         name: "SNX/USDT",
         token0: "SNX",
         token1: "USDT",
-        enabled: true , // ⭐⭐
+        enabled: false , // ⭐⭐
       },
       {
         name: "YFI/WMATIC",
@@ -677,7 +677,7 @@ export const config = {
         name: "YFI/USDC",
         token0: "YFI",
         token1: "USDC",
-        enabled: true , // ⭐⭐
+        enabled: false , // ⭐⭐
       },
       {
         name: "YFI/WETH",
@@ -689,7 +689,7 @@ export const config = {
         name: "YFI/USDT",
         token0: "YFI",
         token1: "USDT",
-        enabled: true , // ⭐⭐
+        enabled: false , // ⭐⭐
       },
       {
         name: "SAND/WMATIC",
@@ -701,7 +701,7 @@ export const config = {
         name: "SAND/USDC",
         token0: "SAND",
         token1: "USDC",
-        enabled: true , // ⭐⭐
+        enabled: false , // ⭐⭐
       },
       {
         name: "SAND/WETH",
@@ -713,7 +713,7 @@ export const config = {
         name: "SAND/USDT",
         token0: "SAND",
         token1: "USDT",
-        enabled: true , // ⭐⭐
+        enabled: false , // ⭐⭐
       },
       {
         name: "MANA/WMATIC",
@@ -725,7 +725,7 @@ export const config = {
         name: "MANA/USDC",
         token0: "MANA",
         token1: "USDC",
-        enabled: true , // ⭐⭐
+        enabled: false , // ⭐⭐
       },
       {
         name: "MANA/WETH",
@@ -737,7 +737,7 @@ export const config = {
         name: "MANA/USDT",
         token0: "MANA",
         token1: "USDT",
-        enabled: true , // ⭐⭐
+        enabled: false , // ⭐⭐
       },
       {
         name: "GHST/WMATIC",
@@ -749,7 +749,7 @@ export const config = {
         name: "GHST/USDC",
         token0: "GHST",
         token1: "USDC",
-        enabled: true , // ⭐⭐
+        enabled: false , // ⭐⭐
       },
       {
         name: "GHST/WETH",
@@ -761,7 +761,7 @@ export const config = {
         name: "GHST/USDT",
         token0: "GHST",
         token1: "USDT",
-        enabled: true , // ⭐⭐
+        enabled: false , // ⭐⭐
       },
       {
         name: "POL/WMATIC",
@@ -773,7 +773,7 @@ export const config = {
         name: "POL/USDC",
         token0: "POL",
         token1: "USDC",
-        enabled: true , // ⭐⭐
+        enabled: false , // ⭐⭐
       },
       {
         name: "POL/WETH",
@@ -785,7 +785,7 @@ export const config = {
         name: "POL/USDT",
         token0: "POL",
         token1: "USDT",
-        enabled: true , // ⭐⭐
+        enabled: false , // ⭐⭐
       }
     ],
       
@@ -866,7 +866,7 @@ export const config = {
         name: "DAI/WETH",
         token0: "DAI",
         token1: "WETH",
-        enabled: true, // ✅ $97k liquidity (existing pair, keep)
+        enabled: false, // ✅ $97k liquidity (existing pair, keep)
       },
       {
         name: "DAI/WBTC",
@@ -878,7 +878,7 @@ export const config = {
         name: "WETH/WBTC",
         token0: "WETH",
         token1: "WBTC",
-        enabled: false, // ✅ Crypto majors (existing pair, keep)
+        enabled: true, // ✅ Crypto majors (existing pair, keep)
       },
       
       // === NEW V3 PAIRS (Discovered via V3 subgraph) ===
