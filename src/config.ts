@@ -1271,10 +1271,12 @@ export const config = {
         token1: "CRV",
         enabled: false, // ❌ DISABLED - Expansion pair, likely low liquidity
       },
-    ]
- ============================================================================
+    ];
+
+//========================================================
+//==================
     // BSC TRADING PAIRS (BSC Mainnet - Chain ID 56)
-    // ============================================================================
+    // ==========================================================//==================
     watchedPairsBSC: [
       // === TIER 1: BNB PAIRS (Highest Volume) ===
       // ❌ EXCLUDED per user request: WBNB vs Stablecoins
@@ -1406,7 +1408,7 @@ export const config = {
         token1: "WBNB",
         enabled: false, // ✅ Polygon / BNB
       },
-      
+     ]; 
       // === NO STABLECOIN-VS-STABLECOIN PAIRS ===
       // User explicitly requested NO stablecoin-vs-stablecoin pairs
 
