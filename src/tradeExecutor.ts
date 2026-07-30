@@ -11,6 +11,7 @@ import { logger } from "./logger.js";
 import { ArbitrageOpportunity } from "./priceMonitor.js";
 import { getDexRouter, getDexType, getDexFee, isDexPairEfficient } from "./dexRouter.js";
 import { simulateArbitrageWithCosts } from "./swapSimulator.js";
+import { getNetworkFeeData } from "./gas.js";
 
 // ============================================================================
 // FLASH LOAN ARBITRAGE CONTRACT ABI
@@ -555,8 +556,8 @@ const gasEstimate = await this.contract.executeArbitrage.estimateGas(
 
 logger.debug(`Gas estimate: ${gasEstimate.toString()}`);
 
-// Get fee data from provider
-const feeData = await this.provider.getFeeData();
+// Get fee data from network-specific gas station or provider
+const feeData = await getNetworkFeeData(this.provider);
 
 const maxGasPriceWei = ethers.parseUnits(
   config.trading.maxGasPrice.toString(),
@@ -577,8 +578,8 @@ const tx = await this.contract.executeArbitrage(
   params,
   {
     gasLimit: (gasEstimate * 120n) / 100n, // 20% buffer
-    maxFeePerGas: feeData.maxFeePerGas,
-    maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
+    maxFeePerGas: feeData.maxFeePerGas ?? undefined,
+    maxPriorityFeePerGas: feeData.maxPriorityFeePerGas ?? undefined,
   }
 );
 
@@ -601,7 +602,7 @@ const tx = await this.contract.executeArbitrage(
       const profit = this.parseArbitrageEvents(receipt);
 
       // Calculate gas cost
-      const gasCostWei = receipt.gasUsed * (receipt.gasPrice || 0n);
+      const gasCostWei = receipt.gasUsed * (receipt.gasPrice ?? 0n);
       const gasCostEth = parseFloat(ethers.formatEther(gasCostWei));
       const gasCostUsd = gasCostEth * 2000; // Assume ETH = $2000
 
