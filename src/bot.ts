@@ -503,7 +503,6 @@ async function main() {
   }
 }
 
-<<<<<<< Updated upstream
 // ESM equivalent of require.main === module
 // Checks if this file is being run directly (not imported)
 const isMainModule = import.meta.url === `file://${process.argv[1]}` || 
@@ -512,10 +511,10 @@ const isMainModule = import.meta.url === `file://${process.argv[1]}` ||
 if (isMainModule) {
   main();
 }
-=======
+
 // Always run when this file is executed directly
 main();
->>>>>>> Stashed changes
+
 
 export default ArbitrageBot;
 export { ArbitrageBot };
