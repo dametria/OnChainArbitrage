@@ -725,7 +725,6 @@ const tx = await this.contract.executeArbitrage(
     }
   }
 
-  /**
    async getContractStats(): Promise<ContractStats> {
   const maxRetries = 3;
 
@@ -771,7 +770,6 @@ const tx = await this.contract.executeArbitrage(
     }
   }
 
-  /**
    async function getBalanceWithRetry(provider: ethers.Provider, address: string, retries = 3) {
   for (let i = 0; i < retries; i++) {
     try {
