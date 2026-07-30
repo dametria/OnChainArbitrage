@@ -786,10 +786,10 @@ export const config = {
         token0: "POL",
         token1: "USDT",
         enabled: false , // ⭐⭐
-      }
-    ],
+      },
       
-      // === NEW HIGH-LIQUIDITY PAIRS (Discovered via script) ===
+      // === NEW HIGH-LIQUIDITY PAIRS (Discovered via  
+// script) ===
       {
         name: "USDC/WETH", 
         token0: "USDC",
@@ -1271,6 +1271,7 @@ export const config = {
         token1: "CRV",
         enabled: false, // ❌ DISABLED - Expansion pair, likely low liquidity
       },
+    ]
  ============================================================================
     // BSC TRADING PAIRS (BSC Mainnet - Chain ID 56)
     // ============================================================================
