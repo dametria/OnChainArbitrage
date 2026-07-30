@@ -13,6 +13,7 @@
  * - TradeExecutor: Executes trades on profitable opportunities
  * - Logger: Provides colored console output
  * - Config: Centralized settings
+ * - CachedProvider: Aggressive caching – balance is fetched ONLY on init + stop
  */
 
 import { ethers } from "ethers";
@@ -23,6 +24,7 @@ import { TradeExecutor } from "./tradeExecutor";
 import type { ArbitrageOpportunity } from "./priceMonitor";
 import { getLogger, stopLogger } from "./dataLogger";
 import { startScheduler, stopScheduler, getScheduler } from "./pairScheduler";
+import { CachedProvider } from "./CachedProvider";
 
 // ============================================================================
 // BOT STATISTICS
@@ -52,7 +54,7 @@ interface BotStats {
 // ============================================================================
 
 class ArbitrageBot {
-  private provider: ethers.JsonRpcProvider | ethers.WebSocketProvider;
+  private provider: CachedProvider;
   private wallet: ethers.Wallet;
   private priceMonitor: PriceMonitor;
   private tradeExecutor: TradeExecutor;
@@ -61,35 +63,33 @@ class ArbitrageBot {
   private monitoringInterval: NodeJS.Timeout | null = null;
 
   constructor() {
-    // Initialize provider (prefer WSS from .env via config.network.rpcUrl)
-    const rpcUrl = config.network.rpcUrl;
+    // Prefer HTTP for the main provider (CachedProvider).
+    // WSS is great for subscriptions, but ordinary calls (getBalance, getFeeData,
+    // eth_call, etc.) should go over HTTP – this is also Alchemy's recommendation.
+    let httpUrl = config.network.rpcUrl;
 
-    if (rpcUrl && rpcUrl.startsWith("wss://")) {
-      // WebSocket provider
-      this.provider = new ethers.WebSocketProvider(rpcUrl);
-
-      // Optional connection logging
-      this.provider.on("block", (blockNumber: number) => {
-        if (blockNumber % 100 === 0) {
-          logger.info(`📡 WSS connected | Block: ${blockNumber}`);
-        }
-      });
-
-      this.provider.on("error", (error: any) => {
-        logger.error("WebSocket error:", error?.message || error);
-      });
-
-      logger.success("🚀 Using WebSocket (WSS) provider");
-    } else {
-      // Fallback to HTTP
-      this.provider = new ethers.JsonRpcProvider(rpcUrl || "https://polygon-mainnet.g.alchemy.com/v2/W6kj4k2ZgM0hqw0JK5eIc");
-      logger.info("Using HTTP RPC provider");
+    if (httpUrl && httpUrl.startsWith("wss://")) {
+      // Convert common Alchemy / Infura style WSS URLs to HTTPS
+      httpUrl = httpUrl
+        .replace("wss://", "https://")
+        .replace("/ws", ""); // some providers use /ws path
+      logger.info("Converted WSS URL to HTTPS for CachedProvider (recommended)");
     }
+
+    // Fallback if nothing usable
+    if (!httpUrl || httpUrl.startsWith("wss://")) {
+      httpUrl =
+        "https://polygon-mainnet.g.alchemy.com/v2/W6kj4k2ZgM0hqw0JK5eIc";
+      logger.warning("Using fallback HTTP RPC URL");
+    }
+
+    this.provider = new CachedProvider(httpUrl);
+    logger.success("🚀 Using CachedProvider (HTTP) – balance only checked on init/stop");
 
     // Initialize wallet
     this.wallet = new ethers.Wallet(config.wallet.privateKey, this.provider);
 
-    // Initialize modules
+    // Initialize modules (they receive the CachedProvider)
     this.priceMonitor = new PriceMonitor(this.provider as any);
     this.tradeExecutor = new TradeExecutor(this.provider as any, this.wallet);
 
@@ -121,7 +121,7 @@ class ArbitrageBot {
     logger.banner();
     logger.info("Initializing Arbitrage Bot...");
     logger.separator();
-    
+
     // Initialize data logger
     const dataLogger = getLogger();
     logger.info(`Data logging enabled: ./logs/`);
@@ -133,10 +133,11 @@ class ArbitrageBot {
     const network = await this.provider.getNetwork();
     logger.info(`Connected to ${network.name} (Chain ID: ${network.chainId})`);
 
-    // Check wallet
-    const balance = await this.tradeExecutor.getBalance();
+    // ─── ONLY real balance call happens here ───
+    const balanceWei = await this.provider.init(this.wallet.address);
+    const balanceEth = ethers.formatEther(balanceWei);
     logger.info(`Wallet: ${this.wallet.address}`);
-    logger.info(`Balance: ${balance} ETH`);
+    logger.info(`Balance: ${balanceEth} ETH (fetched once at startup)`);
 
     // Check authorization
     const isAuthorized = await this.tradeExecutor.isAuthorized();
@@ -154,7 +155,7 @@ class ArbitrageBot {
       logger.success("✓ Wallet is authorized to execute trades");
     }
 
-    // Check minimum balance
+    // Check minimum balance (uses the local value – no extra RPC call)
     const hasSufficientBalance =
       await this.tradeExecutor.hasSufficientBalance();
     if (!hasSufficientBalance) {
@@ -225,9 +226,9 @@ class ArbitrageBot {
           sellOn: opportunity.sellDex.dexName,
           sellPrice: opportunity.sellDex.price.toFixed(4),
           profitPercent: `${opportunity.profitPercent.toFixed(3)}%`,
-          estimatedProfit: `\[ {opportunity.profitUsd.toFixed(2)}`,
-          estimatedGas: ` \]{opportunity.estimatedGasCost.toFixed(2)}`,
-          netProfit: `\[ {opportunity.netProfit.toFixed(2)}`,
+          estimatedProfit: `$${opportunity.profitUsd.toFixed(2)}`,
+          estimatedGas: `$${opportunity.estimatedGasCost.toFixed(2)}`,
+          netProfit: `$${opportunity.netProfit.toFixed(2)}`,
         });
 
         // Execute trade
@@ -265,22 +266,33 @@ class ArbitrageBot {
         this.stats.netProfit =
           this.stats.totalProfit - this.stats.totalGasCost;
 
+        // Keep local balance accurate after a successful trade
+        if (result.gasCost !== undefined && result.gasUsed && result.effectiveGasPrice) {
+          this.provider.recordSpent(result.gasUsed, result.effectiveGasPrice);
+        } else if (result.gasCost) {
+          // Fallback: approximate from USD gas cost if the executor only returns that
+          // (you can improve this once you know the exact shape of `result`)
+        }
+
+        // Bump local nonce so we don't re-query the RPC
+        this.provider.bumpNonce(this.wallet.address);
+
         logger.success("Trade Statistics Updated:", {
           totalTrades: this.stats.tradesExecuted,
           successRate: `${((this.stats.successfulTrades / this.stats.tradesExecuted) * 100).toFixed(1)}%`,
-          totalProfit: ` \]{this.stats.totalProfit.toFixed(2)}`,
-          totalGasCost: `\[ {this.stats.totalGasCost.toFixed(2)}`,
-          netProfit: ` \]{this.stats.netProfit.toFixed(2)}`,
+          totalProfit: `$${this.stats.totalProfit.toFixed(2)}`,
+          totalGasCost: `$${this.stats.totalGasCost.toFixed(2)}`,
+          netProfit: `$${this.stats.netProfit.toFixed(2)}`,
         });
       } else {
         this.stats.failedTrades++;
-        
+
         // Track failure reason for better debugging
         if (result.reason) {
-          this.stats.failureReasons[result.reason]++;
-          
+          this.stats.failureReasons[result.reason as keyof typeof this.stats.failureReasons]++;
+
           // Only log as error if it's not expected (unprofitable and pool_too_small are expected)
-          if (result.reason === 'simulation_unprofitable' || result.reason === 'pool_too_small') {
+          if (result.reason === "simulation_unprofitable" || result.reason === "pool_too_small") {
             logger.debug(`[FILTERED] Trade rejected (${result.reason}): ${result.error}`);
           } else {
             logger.error(`Trade failed (${result.reason}):`, { error: result.error });
@@ -296,17 +308,18 @@ class ArbitrageBot {
 
   /**
    * Perform safety checks before executing trades
+   * Balance check now uses the LOCAL value (no RPC call)
    */
   private async performSafetyChecks(): Promise<boolean> {
-    // Check if wallet has sufficient balance
+    // Uses CachedProvider.getBalance → returns local tracked value, zero RPC
     const hasSufficientBalance =
       await this.tradeExecutor.hasSufficientBalance();
     if (!hasSufficientBalance) {
-      logger.warning("Insufficient wallet balance for gas");
+      logger.warning("Insufficient wallet balance for gas (local check)");
       return false;
     }
 
-    // Check gas price
+    // Fee data is cached (TTL 8 s)
     const feeData = await this.provider.getFeeData();
     const currentGasPrice = feeData.gasPrice || 0n;
     const maxGasPrice = ethers.parseUnits(
@@ -329,7 +342,7 @@ class ArbitrageBot {
 
     if (currentGasPrice > emergencyGasPrice) {
       logger.error("EMERGENCY STOP: Gas price exceeded safety limit!");
-      this.stop();
+      await this.stop();
       return false;
     }
 
@@ -339,7 +352,7 @@ class ArbitrageBot {
       Math.abs(this.stats.netProfit) >= config.safety.maxDailyLoss
     ) {
       logger.error("EMERGENCY STOP: Daily loss limit reached!");
-      this.stop();
+      await this.stop();
       return false;
     }
 
@@ -356,18 +369,18 @@ class ArbitrageBot {
     }
 
     try {
-      // Initialize
+      // Initialize (includes the one real balance fetch)
       await this.initialize();
 
       // Start monitoring
       this.isRunning = true;
       logger.success("Bot started successfully!");
       logger.info("Monitoring for arbitrage opportunities...");
-      
+
       // DISABLED: Pair update scheduler (was overwriting manual pairs)
       // logger.info("⏰ Starting pair update scheduler (every 4 hours)...");
       // startScheduler();
-      
+
       logger.separator();
 
       // Start monitoring loop
@@ -380,14 +393,14 @@ class ArbitrageBot {
       this.monitoringLoop();
     } catch (error) {
       logger.error("Failed to start bot", error);
-      this.stop();
+      await this.stop();
     }
   }
 
   /**
    * Stop the bot
    */
-  stop(): void {
+  async stop(): Promise<void> {
     if (!this.isRunning) return;
 
     logger.info("Stopping bot...");
@@ -405,6 +418,18 @@ class ArbitrageBot {
 
     // Stop data logger and generate final report
     stopLogger();
+
+    // ─── ONLY second real balance call happens here ───
+    try {
+      const finalBal = await this.provider.stop();
+      if (finalBal !== null) {
+        logger.info(
+          `Final on-chain balance: ${ethers.formatEther(finalBal)} ETH`
+        );
+      }
+    } catch (err) {
+      logger.warning("Could not fetch final balance on shutdown");
+    }
 
     // Display final statistics
     this.displayFinalStats();
@@ -433,20 +458,32 @@ class ArbitrageBot {
         (this.stats.successfulTrades / this.stats.tradesExecuted) * 100;
       logger.info(`Success Rate: ${successRate.toFixed(1)}%`);
     }
-    
+
     // Display failure reasons breakdown
     if (this.stats.failedTrades > 0) {
       logger.info(`\nFailure Breakdown:`);
-      logger.info(`  ⏭️  Simulation filtered (unprofitable): ${this.stats.failureReasons.simulation_unprofitable}`);
-      logger.info(`  🔍 Pool too small: ${this.stats.failureReasons.pool_too_small}`);
-      logger.info(`  ⚠️  Simulation technical errors: ${this.stats.failureReasons.simulation_error}`);
-      logger.info(`  💸 High gas cost: ${this.stats.failureReasons.high_gas_cost}`);
-      logger.info(`  ⛔ On-chain reverts: ${this.stats.failureReasons.on_chain_revert}`);
-      logger.info(`  ❌ Unknown errors: ${this.stats.failureReasons.unknown}`);
+      logger.info(
+        `  ⏭️  Simulation filtered (unprofitable): ${this.stats.failureReasons.simulation_unprofitable}`
+      );
+      logger.info(
+        `  🔍 Pool too small: ${this.stats.failureReasons.pool_too_small}`
+      );
+      logger.info(
+        `  ⚠️  Simulation technical errors: ${this.stats.failureReasons.simulation_error}`
+      );
+      logger.info(
+        `  💸 High gas cost: ${this.stats.failureReasons.high_gas_cost}`
+      );
+      logger.info(
+        `  ⛔ On-chain reverts: ${this.stats.failureReasons.on_chain_revert}`
+      );
+      logger.info(
+        `  ❌ Unknown errors: ${this.stats.failureReasons.unknown}`
+      );
     }
 
-    logger.info(`Total Profit: \[ {this.stats.totalProfit.toFixed(2)}`);
-    logger.info(`Total Gas Cost: \]{this.stats.totalGasCost.toFixed(2)}`);
+    logger.info(`Total Profit: $${this.stats.totalProfit.toFixed(2)}`);
+    logger.info(`Total Gas Cost: $${this.stats.totalGasCost.toFixed(2)}`);
     logger.info(`Net Profit: $${this.stats.netProfit.toFixed(2)}`);
     logger.separator();
   }
@@ -468,29 +505,29 @@ async function main() {
   const bot = new ArbitrageBot();
 
   // Handle graceful shutdown
-  process.on("SIGINT", () => {
+  process.on("SIGINT", async () => {
     logger.info("\nReceived SIGINT signal");
-    bot.stop();
+    await bot.stop();
     process.exit(0);
   });
 
-  process.on("SIGTERM", () => {
+  process.on("SIGTERM", async () => {
     logger.info("\nReceived SIGTERM signal");
-    bot.stop();
+    await bot.stop();
     process.exit(0);
   });
 
   // Handle uncaught errors
-  process.on("uncaughtException", (error) => {
+  process.on("uncaughtException", async (error) => {
     logger.error("Uncaught Exception:", error);
-    bot.stop();
+    await bot.stop();
     process.exit(1);
   });
 
-  process.on("unhandledRejection", (reason, promise) => {
+  process.on("unhandledRejection", async (reason, promise) => {
     logger.error("Unhandled Rejection at:", promise);
     logger.error("Reason:", reason);
-    bot.stop();
+    await bot.stop();
     process.exit(1);
   });
 
@@ -503,19 +540,8 @@ async function main() {
   }
 }
 
-<<<<<<< Updated upstream
-// ESM equivalent of require.main === module
-// Checks if this file is being run directly (not imported)
-const isMainModule = import.meta.url === `file://${process.argv[1]}` || 
-                     process.argv[1]?.endsWith('bot.ts');
-
-if (isMainModule) {
-  main();
-}
-=======
 // Always run when this file is executed directly
 main();
->>>>>>> Stashed changes
 
 export default ArbitrageBot;
 export { ArbitrageBot };
