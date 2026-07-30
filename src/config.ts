@@ -1407,8 +1407,8 @@ export const config = {
         token0: "MATIC",
         token1: "WBNB",
         enabled: false, // ✅ Polygon / BNB
-      },
-     ]; 
+      }
+     ], 
       // === NO STABLECOIN-VS-STABLECOIN PAIRS ===
       // User explicitly requested NO stablecoin-vs-stablecoin pairs
 
