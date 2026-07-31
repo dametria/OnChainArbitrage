@@ -219,7 +219,7 @@ export class PriceMonitor {
   private v3QuoterContract: ethers.Contract;
   private v3FactoryContract: ethers.Contract;
   private currentPairIndex = 0;
-  private readonly PAIRS_PER_CYCLE = 8;
+  private readonly PAIRS_PER_CYCLE = 4;
 
   constructor(provider: ethers.JsonRpcProvider) {
     this.provider = provider;
