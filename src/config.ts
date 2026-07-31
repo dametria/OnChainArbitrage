@@ -503,7 +503,7 @@ export const config = {
         name: "UNI/WMATIC",
         token0: "UNI",
         token1: "WMATIC",
-        enabled: true , // ⭐⭐
+        enabled: false , // ⭐⭐
       },
       {
         name: "UNI/USDC",
@@ -671,7 +671,7 @@ export const config = {
         name: "YFI/WMATIC",
         token0: "YFI",
         token1: "WMATIC",
-        enabled: true , // ⭐⭐
+        enabled: false , // ⭐⭐
       },
       {
         name: "YFI/USDC",
@@ -767,7 +767,7 @@ export const config = {
         name: "POL/WMATIC",
         token0: "POL",
         token1: "WMATIC",
-        enabled: true , // ⭐⭐
+        enabled: false , // ⭐⭐
       },
       {
         name: "POL/USDC",
