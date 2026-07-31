@@ -403,7 +403,7 @@ export const config = {
   monitoring: {
     // How often to check prices (in milliseconds)
     // 1000ms = check every 1 second
-    priceCheckInterval: 10000,
+    priceCheckInterval: 15000,
 
     // Pairs to monitor for arbitrage (Polygon pairs)
     // HIGH-LIQUIDITY STRATEGY: 20 verified high-liquidity pairs
