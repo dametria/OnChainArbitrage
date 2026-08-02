@@ -16,12 +16,42 @@ const QUOTER_V2_ABI = [
 const POLYGON_QUOTER_V2 = '0x61fFE014bA17989E743c5F6cB21bF9697530B21e';
 
 // Execution slippage buffer (accounts for price movement between detection and execution)
-// This is CRITICAL for realistic profit calculation
 const getExecutionSlippageBps = () => config?.trading?.executionSlippageBuffer || 20;
+
+export type SimDexType = 'v2' | 'v3';
+
+export interface SimulateArbitrageOptions {
+  provider: ethers.Provider;
+  buyRouter: string;
+  sellRouter: string;
+  amountIn: bigint;
+  /** Preferred names used by tradeExecutor */
+  tokenIn?: string;
+  tokenOut?: string;
+  /** Legacy names */
+  token0?: string;
+  token1?: string;
+  flashLoanFeeBps?: number;
+  estimatedGasUnits?: bigint;
+  buyDexType?: SimDexType | string;
+  sellDexType?: SimDexType | string;
+  buyFeeTier?: number;
+  sellFeeTier?: number;
+  buyFee?: number;
+  sellFee?: number;
+  /** Optional USD price of the borrow token for netProfitUsd */
+  tokenPriceUsd?: number;
+}
+
+function normalizeDexType(t?: string): SimDexType {
+  if (!t) return 'v2';
+  const n = t.toLowerCase();
+  if (n.includes('v3') || n === 'uniswapv3' || n === 'uniswap') return 'v3';
+  return 'v2';
+}
 
 /**
  * Simulates a V2 swap using router's getAmountsOut
- * This is a VIEW function - no gas cost, no state change
  */
 export async function simulateV2Swap(
   provider: ethers.Provider,
@@ -29,10 +59,16 @@ export async function simulateV2Swap(
   amountIn: bigint,
   path: string[]
 ): Promise<bigint> {
+  if (amountIn == null) {
+    throw new Error('simulateV2Swap: amountIn is null/undefined');
+  }
+  if (!router) {
+    throw new Error('simulateV2Swap: router is null/undefined');
+  }
   try {
     const routerContract = new ethers.Contract(router, ROUTER_V2_ABI, provider);
     const amounts = await routerContract.getAmountsOut(amountIn, path);
-    return amounts[amounts.length - 1]; // Return final amount
+    return amounts[amounts.length - 1];
   } catch (error) {
     logger.error(`Failed to simulate V2 swap on ${router}: ${error}`);
     throw error;
@@ -41,45 +77,40 @@ export async function simulateV2Swap(
 
 /**
  * Simulates a V3 swap using Quoter V2's quoteExactInputSingle
- * This returns the exact output amount accounting for:
- * - Price impact from your specific trade size
- * - Pool's concentrated liquidity positions
- * - Fee tier (500 = 0.05%, 3000 = 0.3%, 10000 = 1%)
  */
 export async function simulateV3Swap(
   provider: ethers.Provider,
-  quoter: string, // Not used, we hardcode Polygon Quoter V2
+  _quoter: string,
   tokenIn: string,
   tokenOut: string,
   fee: number,
   amountIn: bigint
 ): Promise<bigint> {
+  if (amountIn == null) {
+    throw new Error('simulateV3Swap: amountIn is null/undefined');
+  }
   try {
     const quoterContract = new ethers.Contract(POLYGON_QUOTER_V2, QUOTER_V2_ABI, provider);
-    
-    // Quoter V2 uses a struct parameter
+
     const quoteParams = {
-      tokenIn: tokenIn,
-      tokenOut: tokenOut,
-      amountIn: amountIn,
-      fee: fee,
-      sqrtPriceLimitX96: 0 // No price limit
+      tokenIn,
+      tokenOut,
+      amountIn,
+      fee,
+      sqrtPriceLimitX96: 0,
     };
-    
-    // Use staticCall to simulate without executing
+
     const result = await quoterContract.quoteExactInputSingle.staticCall(quoteParams);
-    
-    // Result is [amountOut, sqrtPriceX96After, initializedTicksCrossed, gasEstimate]
     const amountOut = result[0];
-    
-    logger.debug(`V3 simulation: ${ethers.formatEther(amountIn)} → ${ethers.formatEther(amountOut)} (fee: ${fee/100} bps)`);
-    
+
+    logger.debug(
+      `V3 simulation: ${ethers.formatEther(amountIn)} → ${ethers.formatEther(amountOut)} (fee: ${fee / 100} bps)`
+    );
+
     return amountOut;
   } catch (error: any) {
     logger.warning(`V3 simulation failed: ${error.message}`);
-    // Fallback: estimate with conservative slippage
-    // For small amounts, V3 has better pricing than V2 due to concentrated liquidity
-    const estimatedOut = (amountIn * 995n) / 1000n; // Assume 0.5% slippage
+    const estimatedOut = (amountIn * 995n) / 1000n;
     logger.warning(`Using fallback estimate: ${ethers.formatEther(estimatedOut)}`);
     return estimatedOut;
   }
@@ -87,10 +118,6 @@ export async function simulateV3Swap(
 
 /**
  * Simulates a complete arbitrage route (buy on DEX1, sell on DEX2)
- * Returns the final amount and profit calculation
- * 
- * IMPORTANT: We simulate V3 swaps with Quoter V2 to get EXACT amounts
- * This accounts for concentrated liquidity and price impact
  */
 export async function simulateArbitrageRoute(
   provider: ethers.Provider,
@@ -99,8 +126,8 @@ export async function simulateArbitrageRoute(
   amountIn: bigint,
   token0: string,
   token1: string,
-  buyDexType: 'v2' | 'v3' = 'v2',
-  sellDexType: 'v2' | 'v3' = 'v2',
+  buyDexType: SimDexType = 'v2',
+  sellDexType: SimDexType = 'v2',
   buyFee?: number,
   sellFee?: number
 ): Promise<{
@@ -112,55 +139,63 @@ export async function simulateArbitrageRoute(
   priceImpactBps: number;
 }> {
   try {
+    if (amountIn == null) {
+      throw new Error('simulateArbitrageRoute: amountIn is null/undefined');
+    }
+    if (!token0 || !token1) {
+      throw new Error('simulateArbitrageRoute: token0/token1 missing');
+    }
+
     logger.info(`🔍 Simulating arbitrage: ${ethers.formatEther(amountIn)} tokens`);
-    logger.info(`  Buy: ${buyDexType === 'v3' ? `V3 (${buyFee ? buyFee/100 : '?'} bps)` : 'V2'} | Sell: ${sellDexType === 'v3' ? `V3 (${sellFee ? sellFee/100 : '?'} bps)` : 'V2'}`);
-    
+    logger.info(
+      `  Buy: ${buyDexType === 'v3' ? `V3 (${buyFee ? buyFee / 100 : '?'} bps)` : 'V2'} | Sell: ${
+        sellDexType === 'v3' ? `V3 (${sellFee ? sellFee / 100 : '?'} bps)` : 'V2'
+      }`
+    );
+
     // Step 1: Simulate BUY swap (token0 -> token1)
     let buyOutput: bigint;
     if (buyDexType === 'v3' && buyFee) {
-      // Use V3 Quoter for accurate simulation
       buyOutput = await simulateV3Swap(provider, buyRouter, token0, token1, buyFee, amountIn);
     } else {
-      // Use V2 router's getAmountsOut
       const buyPath = [token0, token1];
       buyOutput = await simulateV2Swap(provider, buyRouter, amountIn, buyPath);
     }
-    
+
     logger.info(`  Buy simulation: ${ethers.formatEther(amountIn)} → ${ethers.formatEther(buyOutput)}`);
-    
+
     // Step 2: Simulate SELL swap (token1 -> token0)
     let finalAmount: bigint;
     if (sellDexType === 'v3' && sellFee) {
-      // Use V3 Quoter for accurate simulation
       finalAmount = await simulateV3Swap(provider, sellRouter, token1, token0, sellFee, buyOutput);
     } else {
-      // Use V2 router's getAmountsOut
       const sellPath = [token1, token0];
       finalAmount = await simulateV2Swap(provider, sellRouter, buyOutput, sellPath);
     }
-    
+
     logger.info(`  Sell simulation: ${ethers.formatEther(buyOutput)} → ${ethers.formatEther(finalAmount)}`);
-    
-    // Step 3: Calculate profit
+
     const profit = finalAmount - amountIn;
     const profitPercent = (Number(profit) * 100) / Number(amountIn);
     const profitable = profit > 0n;
-    
-    // Step 4: Calculate price impact
-    // Expected output (off-chain) vs actual output (on-chain)
-    const expectedOutput = amountIn; // Should be close to amountIn for arbitrage
-    const priceImpactBps = Math.abs(((Number(expectedOutput) - Number(finalAmount)) / Number(expectedOutput)) * 10000);
-    
-    logger.info(`  Result: ${profitable ? '✅ PROFIT' : '❌ LOSS'} ${ethers.formatEther(profit)} (${profitPercent.toFixed(4)}%)`);
+
+    const expectedOutput = amountIn;
+    const priceImpactBps = Math.abs(
+      ((Number(expectedOutput) - Number(finalAmount)) / Number(expectedOutput)) * 10000
+    );
+
+    logger.info(
+      `  Result: ${profitable ? '✅ PROFIT' : '❌ LOSS'} ${ethers.formatEther(profit)} (${profitPercent.toFixed(4)}%)`
+    );
     logger.info(`  Price impact: ${priceImpactBps.toFixed(2)} bps`);
-    
+
     return {
       finalAmount,
       profit,
       profitPercent,
       profitable,
       buyOutput,
-      priceImpactBps
+      priceImpactBps,
     };
   } catch (error) {
     logger.error(`Failed to simulate arbitrage route: ${error}`);
@@ -168,20 +203,33 @@ export async function simulateArbitrageRoute(
   }
 }
 
+function isOptionsObject(arg: unknown): arg is SimulateArbitrageOptions {
+  return (
+    typeof arg === 'object' &&
+    arg !== null &&
+    'provider' in arg &&
+    'amountIn' in arg
+  );
+}
+
 /**
- * Simulates arbitrage and accounts for all costs (flash loan fee, gas)
+ * Simulates arbitrage and accounts for all costs (flash loan fee, gas, execution slippage).
+ *
+ * Supports BOTH:
+ *  - options object (preferred, used by tradeExecutor)
+ *  - legacy positional arguments
  */
 export async function simulateArbitrageWithCosts(
-  provider: ethers.Provider,
-  buyRouter: string,
-  sellRouter: string,
-  amountIn: bigint,
-  token0: string,
-  token1: string,
+  providerOrOpts: ethers.Provider | SimulateArbitrageOptions,
+  buyRouter?: string,
+  sellRouter?: string,
+  amountIn?: bigint,
+  token0?: string,
+  token1?: string,
   flashLoanFeeBps: number = 5,
   estimatedGasUnits: bigint = 500000n,
-  buyDexType: 'v2' | 'v3' = 'v2',
-  sellDexType: 'v2' | 'v3' = 'v2',
+  buyDexType: SimDexType | string = 'v2',
+  sellDexType: SimDexType | string = 'v2',
   buyFee?: number,
   sellFee?: number
 ): Promise<{
@@ -191,52 +239,118 @@ export async function simulateArbitrageWithCosts(
   gasCost: bigint;
   netProfit: bigint;
   netProfitPercent: number;
+  netProfitUsd: number;
   profitable: boolean;
+  reason?: string;
   simulation: Awaited<ReturnType<typeof simulateArbitrageRoute>>;
 }> {
-  // Simulate the swaps
+  let provider: ethers.Provider;
+  let _buyRouter: string;
+  let _sellRouter: string;
+  let _amountIn: bigint;
+  let _token0: string;
+  let _token1: string;
+  let _flashLoanFeeBps: number;
+  let _estimatedGasUnits: bigint;
+  let _buyDexType: SimDexType;
+  let _sellDexType: SimDexType;
+  let _buyFee: number | undefined;
+  let _sellFee: number | undefined;
+  let tokenPriceUsd = 1;
+
+  if (isOptionsObject(providerOrOpts)) {
+    const o = providerOrOpts;
+    provider = o.provider;
+    _buyRouter = o.buyRouter;
+    _sellRouter = o.sellRouter;
+    _amountIn = o.amountIn;
+    _token0 = o.tokenIn ?? o.token0 ?? '';
+    _token1 = o.tokenOut ?? o.token1 ?? '';
+    _flashLoanFeeBps = o.flashLoanFeeBps ?? config.trading?.flashLoanFeeBps ?? 5;
+    _estimatedGasUnits = o.estimatedGasUnits ?? 500000n;
+    _buyDexType = normalizeDexType(o.buyDexType);
+    _sellDexType = normalizeDexType(o.sellDexType);
+    _buyFee = o.buyFeeTier ?? o.buyFee;
+    _sellFee = o.sellFeeTier ?? o.sellFee;
+    tokenPriceUsd = o.tokenPriceUsd ?? 1;
+  } else {
+    provider = providerOrOpts;
+    _buyRouter = buyRouter!;
+    _sellRouter = sellRouter!;
+    _amountIn = amountIn!;
+    _token0 = token0!;
+    _token1 = token1!;
+    _flashLoanFeeBps = flashLoanFeeBps;
+    _estimatedGasUnits = estimatedGasUnits;
+    _buyDexType = normalizeDexType(String(buyDexType));
+    _sellDexType = normalizeDexType(String(sellDexType));
+    _buyFee = buyFee;
+    _sellFee = sellFee;
+  }
+
+  // Hard guards — these are the exact source of the BigNumberish null error
+  if (_amountIn == null) {
+    throw new Error('simulateArbitrageWithCosts: amountIn is null/undefined');
+  }
+  if (!_buyRouter || !_sellRouter) {
+    throw new Error('simulateArbitrageWithCosts: buyRouter/sellRouter missing');
+  }
+  if (!_token0 || !_token1) {
+    throw new Error('simulateArbitrageWithCosts: tokenIn/tokenOut (token0/token1) missing');
+  }
+
   const simulation = await simulateArbitrageRoute(
     provider,
-    buyRouter,
-    sellRouter,
-    amountIn,
-    token0,
-    token1,
-    buyDexType,
-    sellDexType,
-    buyFee,
-    sellFee
+    _buyRouter,
+    _sellRouter,
+    _amountIn,
+    _token0,
+    _token1,
+    _buyDexType,
+    _sellDexType,
+    _buyFee,
+    _sellFee
   );
-  
-  // Calculate flash loan fee (e.g., 5 bps = 0.05%)
-  const flashLoanFee = (amountIn * BigInt(flashLoanFeeBps)) / 10000n;
-  
-  // Estimate gas cost
+
+  const flashLoanFee = (_amountIn * BigInt(_flashLoanFeeBps)) / 10000n;
+
   const feeData = await provider.getFeeData();
-  const gasPrice = feeData.gasPrice || 0n;
-  const gasCost = estimatedGasUnits * gasPrice;
-  
-  // Calculate execution slippage buffer (accounts for price movement between detection and execution)
-  // This is CRITICAL: on-chain prices move during block time, MEV bots can frontrun, etc.
+  const gasPrice = feeData.gasPrice || feeData.maxFeePerGas || 0n;
+  const gasCost = _estimatedGasUnits * gasPrice;
+
   const executionSlippageBps = getExecutionSlippageBps();
-  const executionSlippageCost = (amountIn * BigInt(executionSlippageBps)) / 10000n;
-  
-  // Calculate net profit with ALL costs accounted for
+  const executionSlippageCost = (_amountIn * BigInt(executionSlippageBps)) / 10000n;
+
   const grossProfit = simulation.profit;
   const totalCosts = flashLoanFee + gasCost + executionSlippageCost;
   const netProfit = grossProfit - totalCosts;
-  const netProfitPercent = (Number(netProfit) * 100) / Number(amountIn);
+  const netProfitPercent = (Number(netProfit) * 100) / Number(_amountIn);
   const profitable = netProfit > 0n;
-  
+
+  // Rough USD conversion (token amount * price). Caller can pass tokenPriceUsd.
+  const netProfitToken = Number(ethers.formatEther(netProfit));
+  const netProfitUsd = netProfitToken * tokenPriceUsd;
+
+  let reason: string | undefined;
+  if (!profitable) {
+    if (grossProfit <= 0n) {
+      reason = `Gross swap profit negative (${ethers.formatEther(grossProfit)} tokens)`;
+    } else {
+      reason = `Net after fees/gas/slippage negative (net=${ethers.formatEther(netProfit)}, costs=${ethers.formatEther(totalCosts)})`;
+    }
+  }
+
   logger.info(`💰 Cost breakdown:`);
   logger.info(`  Gross profit: ${ethers.formatEther(grossProfit)}`);
-  logger.info(`  Flash loan fee: ${ethers.formatEther(flashLoanFee)} (${flashLoanFeeBps} bps)`);
-  logger.info(`  Gas cost: ${ethers.formatEther(gasCost)} MATIC`);
-  logger.info(`  Execution slippage buffer: ${ethers.formatEther(executionSlippageCost)} (${executionSlippageBps} bps)`);
+  logger.info(`  Flash loan fee: ${ethers.formatEther(flashLoanFee)} (${_flashLoanFeeBps} bps)`);
+  logger.info(`  Gas cost: ${ethers.formatEther(gasCost)} native`);
+  logger.info(
+    `  Execution slippage buffer: ${ethers.formatEther(executionSlippageCost)} (${executionSlippageBps} bps)`
+  );
   logger.info(`  Total costs: ${ethers.formatEther(totalCosts)}`);
-  logger.info(`  Net profit: ${ethers.formatEther(netProfit)} (${netProfitPercent.toFixed(4)}%)`);
+  logger.info(`  Net profit: ${ethers.formatEther(netProfit)} (${netProfitPercent.toFixed(4)}%) ≈ $${netProfitUsd.toFixed(4)}`);
   logger.info(`  Status: ${profitable ? '✅ PROFITABLE' : '❌ UNPROFITABLE'}`);
-  
+
   return {
     finalAmount: simulation.finalAmount,
     grossProfit,
@@ -244,7 +358,9 @@ export async function simulateArbitrageWithCosts(
     gasCost,
     netProfit,
     netProfitPercent,
+    netProfitUsd,
     profitable,
-    simulation
+    reason,
+    simulation,
   };
 }
