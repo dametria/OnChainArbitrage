@@ -12,8 +12,8 @@ export const bscConfig = {
   },
 
   contracts: {
-    flashLoanArbitrage: process.env.BSC_CONTRACT_ADDRESS || "",
-    aavePoolAddressProvider: "", // update if using Aave on BSC
+    flashLoanArbitrage: process.env.BSC_CONTRACT_ADDRESS || "0x7A6224E5DbC1b76c57a3acA0317FEA336A62341e",
+    aavePoolAddressProvider: "0xff75B6da14FfbbfD355Daf7a2731456b3562Ba6D", // update if using Aave on BSC
   },
 
   tokens: {
