@@ -340,6 +340,20 @@ export class TradeExecutor {
     return ethers.parseEther(tokenAmount.toString());
   }
 
+  /** Rough USD price of the flash-loaned (token0) asset */
+  private estimateToken0PriceUsd(opportunity: ArbitrageOpportunity): number {
+    const token0Symbol = opportunity.pair.token0.toUpperCase();
+    const stablecoins = ["USDC", "USDT", "DAI", "MAI", "FRAX", "TUSD", "BUSD"];
+    if (stablecoins.includes(token0Symbol)) return 1.0;
+    if (token0Symbol === "WMATIC" || token0Symbol === "MATIC" || token0Symbol === "POL") {
+      return 0.4;
+    }
+    if (token0Symbol === "WETH" || token0Symbol === "ETH") return 2000;
+    if (token0Symbol === "WBTC" || token0Symbol === "BTC") return 60000;
+    // Default: treat as ~native on polygon, else ETH-ish
+    return config.network.name === "polygon" ? 0.4 : 2000;
+  }
+
   // ─────────────────────────────────────────────
   // Profitability validation (kept for reference / optional use)
   // ─────────────────────────────────────────────
@@ -508,11 +522,19 @@ export class TradeExecutor {
         throw err;
       }
 
+      // Guard: never pass null/undefined amount into simulation or the contract
+      if (flashLoanAmount == null || flashLoanAmount <= 0n) {
+        return {
+          success: false,
+          error: `Invalid flash loan amount: ${flashLoanAmount}`,
+          reason: "simulation_error",
+        };
+      }
+
+      const tokenPriceUsd = this.estimateToken0PriceUsd(opportunity);
       const flashLoanAmountFormatted = ethers.formatEther(flashLoanAmount);
-      const nativeTokenPrice =
-        config.network.name === "polygon" ? 0.4 : 2000;
       const tradeSizeUSD =
-        parseFloat(flashLoanAmountFormatted) * nativeTokenPrice;
+        parseFloat(flashLoanAmountFormatted) * tokenPriceUsd;
 
       logger.info(`💰 [TRADE SIZE DETAILS]`);
       logger.info(
@@ -546,10 +568,28 @@ export class TradeExecutor {
         const buyDexType = getDexType(opportunity.buyDex.dexName);
         const sellDexType = getDexType(opportunity.sellDex.dexName);
 
+        if (!buyRouter || !sellRouter) {
+          return {
+            success: false,
+            error: `Missing router: buy=${buyRouter} sell=${sellRouter}`,
+            reason: "simulation_error",
+          };
+        }
+
+        const tokenIn = opportunity.pair.token0Address;
+        const tokenOut = opportunity.pair.token1Address;
+        if (!tokenIn || !tokenOut) {
+          return {
+            success: false,
+            error: `Missing token addresses: tokenIn=${tokenIn} tokenOut=${tokenOut}`,
+            reason: "simulation_error",
+          };
+        }
+
         const simulation = await simulateArbitrageWithCosts({
           provider: this.provider,
-          tokenIn: opportunity.pair.token0Address,
-          tokenOut: opportunity.pair.token1Address,
+          tokenIn,
+          tokenOut,
           amountIn: flashLoanAmount,
           buyRouter,
           sellRouter,
@@ -557,6 +597,9 @@ export class TradeExecutor {
           sellDexType,
           buyFeeTier: opportunity.buyDex.feeTier || 0,
           sellFeeTier: opportunity.sellDex.feeTier || 0,
+          flashLoanFeeBps: config.trading.flashLoanFeeBps,
+          estimatedGasUnits: 500000n,
+          tokenPriceUsd,
         });
 
         if (!simulation.profitable) {
@@ -656,11 +699,8 @@ export class TradeExecutor {
             const parsed = this.contract.interface.parseLog(log);
             if (parsed && parsed.name === "ArbitrageExecuted") {
               const profitWei = parsed.args.profit as bigint;
-              // Convert roughly to USD (adjust if you have a better price feed)
               const profitEth = parseFloat(ethers.formatEther(profitWei));
-              const tokenPrice =
-                config.network.name === "polygon" ? 0.4 : 2000;
-              profitUsd = profitEth * tokenPrice;
+              profitUsd = profitEth * tokenPriceUsd;
               break;
             }
           } catch {
