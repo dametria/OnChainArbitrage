@@ -21,7 +21,7 @@ export const config = {
   network: {
     name: (process.env.NETWORK || "polygon") as SupportedChain,
     rpcUrl: process.env.NETWORK === "bsc" 
-      ? (process.env.BSC_RPC_URL || "https://bsc-dataseed.binance.org")
+      ? (process.env.BSC_RPC_URL || "https://bsc-mainnet.infura.io/v3/d90f2773b8cd47b6a14d98c0d0b6df24")
       : process.env.NETWORK === "base"
       ? (process.env.BASE_RPC_URL || "https://mainnet.base.org")
       : (process.env.RPC_WSS_URL || ""),
