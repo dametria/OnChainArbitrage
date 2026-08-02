@@ -46,8 +46,8 @@ export const MULTICHAIN_CONFIG: { [chainId: number]: ChainConfig } = {
       decimals: 18,
     },
     rpcUrls: {
-      http: process.env.POLYGON_RPC_URL || "https://polygon-rpc.com",
-      websocket: process.env.POLYGON_WSS_URL || "wss://polygon-mainnet.g.alchemy.com/v2/YOUR_KEY",
+      http: process.env.POLYGON_RPC_URL || "https://polygon-mainnet.infura.io/v3/d90f2773b8cd47b6a14d98c0d0b6df24",
+      websocket: process.env.WSS_RPC_URL || "wss://polygon-mainnet.infura.io/ws/v3/d90f2773b8cd47b6a14d98c0d0b6df24",
     },
     dexes: {
       quickswap: {
