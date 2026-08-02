@@ -11,7 +11,7 @@ require('dotenv').config();
 // Override NETWORK environment variable to BSC
 process.env.NETWORK = 'bsc';
 
-const config = require('../dist/src/config').config;
+const config = require('../src/config').config;
 
 // Uniswap V2 Pair ABI
 const PAIR_ABI = [
