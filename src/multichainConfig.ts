@@ -124,8 +124,8 @@ export const MULTICHAIN_CONFIG: { [chainId: number]: ChainConfig } = {
       decimals: 18,
     },
     rpcUrls: {
-      http: process.env.BSC_RPC_URL || "https://bsc-dataseed.binance.org",
-      websocket: process.env.BSC_WSS_URL || "wss://bsc-ws-node.nariox.org:443",
+      http: process.env.BSC_RPC_URL || "https://bsc-mainnet.infura.io/v3/d90f2773b8cd47b6a14d98c0d0b6df24",
+      websocket: process.env.BSC_WSS_URL || "wss://bsc-mainnet.infura.io/ws/v3/d90f2773b8cd47b6a14d98c0d0b6df24",
     },
     dexes: {
       pancakeswap: {
