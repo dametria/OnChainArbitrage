@@ -1,92 +1,122 @@
 import { ethers, FeeData } from "ethers";
 
 /**
- * Robust gas fee estimator for Polygon
- * 1. Tries official Gas Station
- * 2. Falls back to provider.getFeeData()
- * 3. Falls back to safe static values
+ * Robust, chain-agnostic gas fee estimator
+ *
+ * Strategy:
+ * 1. Optional custom gas-station URL (if provided)
+ * 2. provider.getFeeData()
+ * 3. Configurable static fallback (or throw)
  */
-export async function getPolygonFeeData(
+export async function getFeeData(
   provider: ethers.Provider,
   options: {
     retries?: number;
     retryDelayMs?: number;
+    /** Optional chain-specific gas station endpoint (e.g. Polygon Gas Station) */
+    gasStationUrl?: string;
+    /** Prefer the gas station when a URL is supplied (default: true) */
     preferGasStation?: boolean;
+    /**
+     * Static fallback values (in gwei).
+     * Set to null/undefined to disable the static fallback and throw instead.
+     */
+    staticFallback?: {
+      maxFeePerGasGwei: number;
+      maxPriorityFeePerGasGwei: number;
+    } | null;
   } = {}
 ): Promise<FeeData> {
   const {
     retries = 3,
     retryDelayMs = 800,
+    gasStationUrl,
     preferGasStation = true,
+    staticFallback = {
+      maxFeePerGasGwei: 50,
+      maxPriorityFeePerGasGwei: 30,
+    },
   } = options;
 
-  // --- 1. Try official Polygon Gas Station (with retries) ---
-  if (preferGasStation) {
+  // --- 1. Optional external gas station (with retries) ---
+  if (preferGasStation && gasStationUrl) {
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
-        const res = await fetch("https://gasstation.polygon.technology/v2", {
-          signal: AbortSignal.timeout(4000), // prevent hanging
+        const res = await fetch(gasStationUrl, {
+          signal: AbortSignal.timeout(4000),
         });
 
         if (!res.ok) throw new Error(`Gas Station HTTP ${res.status}`);
 
         const data = await res.json();
 
-        // Convert from gwei (API returns numbers in gwei)
+        // Expect the common shape: { fast: { maxFee, maxPriorityFee } } (values in gwei)
         const maxPriorityFeePerGas = ethers.parseUnits(
-          String(Math.ceil(data.fast.maxPriorityFee)),
+          String(Math.ceil(data.fast?.maxPriorityFee ?? data.fast?.maxPriorityFeePerGas)),
           "gwei"
         );
         const maxFeePerGas = ethers.parseUnits(
-          String(Math.ceil(data.fast.maxFee)),
+          String(Math.ceil(data.fast?.maxFee ?? data.fast?.maxFeePerGas)),
           "gwei"
         );
 
-        console.log(`[Gas] Using Polygon Gas Station (attempt ${attempt})`);
+        console.log(`[Gas] Using gas station (attempt ${attempt})`);
         return {
           maxFeePerGas,
           maxPriorityFeePerGas,
-          gasPrice: null, // EIP-1559
+          gasPrice: null, // EIP-1559 style
         };
       } catch (err: any) {
-        const isInternalError =
-          err?.code === "SERVER_ERROR" ||
-          err?.error?.code === -32000 ||
-          err?.message?.includes("internal error") ||
-          err?.shortMessage?.includes("coalesce");
-
         console.warn(
-          `[Gas] Gas Station failed (attempt \( {attempt}/ \){retries}):`,
+          `[Gas] Gas station failed (attempt \( {attempt}/ \){retries}):`,
           err?.shortMessage || err?.message || err
         );
 
-        if (attempt < retries && isInternalError) {
+        if (attempt < retries) {
           await new Promise((r) => setTimeout(r, retryDelayMs * attempt));
           continue;
         }
-        // Fall through to provider fallback
+        // Fall through to provider
         break;
       }
     }
   }
 
-  // --- 2. Fallback: provider.getFeeData() ---
+  // --- 2. Primary: provider.getFeeData() ---
   try {
     const feeData = await provider.getFeeData();
+
+    // Prefer EIP-1559 fields when available
     if (feeData.maxFeePerGas && feeData.maxPriorityFeePerGas) {
-      console.log("[Gas] Using provider.getFeeData()");
+      console.log("[Gas] Using provider.getFeeData() (EIP-1559)");
       return feeData;
     }
+
+    // Fallback to legacy gasPrice if the chain/provider only returns that
+    if (feeData.gasPrice) {
+      console.log("[Gas] Using provider.getFeeData() (legacy gasPrice)");
+      return {
+        maxFeePerGas: feeData.gasPrice,
+        maxPriorityFeePerGas: feeData.gasPrice / 2n, // conservative tip
+        gasPrice: feeData.gasPrice,
+      };
+    }
   } catch (err) {
-    console.warn("[Gas] provider.getFeeData() also failed:", err);
+    console.warn("[Gas] provider.getFeeData() failed:", err);
   }
 
-  // --- 3. Last resort: safe static values for Polygon ---
-  // These are deliberately conservative (usually still cheap)
-  console.log("[Gas] Using static fallback values");
-  return {
-    maxFeePerGas: ethers.parseUnits("80", "gwei"),        // max you're willing to pay
-    maxPriorityFeePerGas: ethers.parseUnits("40", "gwei"), // tip
-    gasPrice: null,
-  };
+  // --- 3. Static fallback (or fail) ---
+  if (staticFallback) {
+    console.log("[Gas] Using static fallback values");
+    return {
+      maxFeePerGas: ethers.parseUnits(String(staticFallback.maxFeePerGasGwei), "gwei"),
+      maxPriorityFeePerGas: ethers.parseUnits(
+        String(staticFallback.maxPriorityFeePerGasGwei),
+        "gwei"
+      ),
+      gasPrice: null,
+    };
+  }
+
+  throw new Error("Unable to obtain fee data from any source");
 }
