@@ -41,13 +41,13 @@ export const config = {
   },
 
   trading: {
-    minProfitBps: parseInt(process.env.MIN_PROFIT_BPS || "20", 10),
+    minProfitBps: parseInt(process.env.MIN_PROFIT_BPS || "15", 10),
     maxGasPrice: 500, // Gwei
-    maxTradeSize: parseInt(process.env.MAX_TRADE_SIZE_USD || "1000", 10),
-    minTradeSize: parseInt(process.env.MIN_TRADE_SIZE_USD || "200", 10),
+    maxTradeSize: parseInt(process.env.MAX_TRADE_SIZE_USD || "10000", 10),
+    minTradeSize: parseInt(process.env.MIN_TRADE_SIZE_USD || "50", 10),
     slippageTolerance: parseInt(process.env.SLIPPAGE_TOLERANCE_BPS || "150", 10),
     flashLoanFeeBps: 5, // 0.05%
-    minPoolLiquidity: parseInt(process.env.MIN_POOL_LIQUIDITY || "1000", 10),
+    minPoolLiquidity: parseInt(process.env.MIN_POOL_LIQUIDITY || "250", .25),
     executionSlippageBuffer: parseInt(
       process.env.EXECUTION_SLIPPAGE_BPS || "20",
       10
