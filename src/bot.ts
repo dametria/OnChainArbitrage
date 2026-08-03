@@ -77,11 +77,16 @@ class ArbitrageBot {
     }
 
     // Fallback if nothing usable
-    if (!httpUrl || httpUrl.startsWith("wss://")) {
-      httpUrl =
-        "https://polygon-mainnet.g.alchemy.com/v2/W6kj4k2ZgM0hqw0JK5eIc";
-      logger.warning("Using fallback HTTP RPC URL");
-    }
+if (!httpUrl || httpUrl.startsWith("wss://")) {
+  const fallback = process.env.FALLBACK_HTTP_RPC_URL;
+  if (!fallback) {
+    throw new Error(
+      "No valid HTTP RPC URL available and FALLBACK_HTTP_RPC_URL is not set"
+    );
+  }
+  httpUrl = fallback;
+  logger.warning("Using fallback HTTP RPC URL from FALLBACK_HTTP_RPC_URL");
+}
 
     this.provider = new CachedProvider(httpUrl);
     logger.success("🚀 Using CachedProvider (HTTP) – balance only checked on init/stop");
