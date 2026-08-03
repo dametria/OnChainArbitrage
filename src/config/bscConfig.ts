@@ -1,5 +1,9 @@
 /**
  * BSC (Chain ID 56) Configuration
+ *
+ * Note: Official Aave V3 is not deployed on BSC in the same form as Polygon/Base.
+ * Flash-loan source may differ (e.g. Pancake flash swaps). aavePoolAddressProvider
+ * is left empty unless you deploy/use a compatible provider.
  */
 
 export const bscConfig = {
@@ -7,15 +11,23 @@ export const bscConfig = {
     name: "bsc" as const,
     chainId: 56,
     rpcUrl:
-      process.env.BSC_RPC_URL || "https://bsc-mainnet.infura.io/v3/d90f2773b8cd47b6a14d98c0d0b6df24",
+      process.env.BSC_RPC_URL ||
+      process.env.RPC_URL ||
+      "https://bsc-dataseed.binance.org",
     rpcWssUrl:
-      process.env.BSC_WSS_URL || "wss://bsc-mainnet.infura.io/ws/v3/0943af620e824e12a62823f73eacc3f5",
+      process.env.BSC_WSS_URL ||
+      process.env.RPC_WSS_URL ||
+      "",
   },
 
   contracts: {
-    flashLoanArbitrage: process.env.BSC_CONTRACT_ADDRESS || "0x7A6224E5DbC1b76c57a3acA0317FEA336A62341e",
-    aavePoolAddressProvider: "0xff75B6da14FfbbfD355Daf7a2731456b3562Ba6D", // update if using Aave on BSC
+    flashLoanArbitrage: process.env.BSC_CONTRACT_ADDRESS || "",
+    // No official Aave V3 PoolAddressesProvider on BSC – leave empty or set your own
+    aavePoolAddressProvider: process.env.BSC_AAVE_PROVIDER || "",
   },
+
+  nativeTokenSymbol: "WBNB",
+  quoteStableSymbol: "USDT",
 
   tokens: {
     WBNB: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
@@ -32,7 +44,6 @@ export const bscConfig = {
     AAVE: "0xfb6115445Bff7b52FeB98650C87f44907E58f802",
     SUSHI: "0x947950BcC74888a40Ffa2593C5798F11Fc9124C4",
     AXS: "0x715D400F88C167884bbCc41C5FeA407ed4D2f8A0",
-    MBOX: "0x3203c9E46cA618C8C1cE5dC67e7e9D75f5da2377",
     GALA: "0x7dDEE176F665cD201F93eEDE625770E2fD911990",
     ADA: "0x3EE2200Efb3400fAbB9AacF31297cBdD1d435D47",
     DOT: "0x7083609fCE4d1d8Dc0C979AAb8c869Ea2C873402",
@@ -40,7 +51,6 @@ export const bscConfig = {
     AVAX: "0x1CE0c2827e2eF14D5C4f29a091d735A204794041",
     FTM: "0xAD29AbB318791D579433D831ed122aFeAf29dcfe",
     XVS: "0xcF6BB5389c92Bdda8a3747Ddb454cB7a64626C63",
-    ALPACA: "0x8F0528cE5eF7B51152A59745bEfDD91D97091d2F",
   },
 
   dexes: {
@@ -58,18 +68,9 @@ export const bscConfig = {
     dryRun: process.env.ENABLE_DRY_RUN !== "false",
 
     watchedPairs: [
-      // Most pairs currently disabled per original strategy
-      { name: "WBNB/USDT", token0: "WBNB", token1: "USDT", enabled: false },
-      { name: "WBNB/BUSD", token0: "WBNB", token1: "BUSD", enabled: false },
-      { name: "WBNB/USDC", token0: "WBNB", token1: "USDC", enabled: false },
       { name: "WBNB/WETH", token0: "WBNB", token1: "WETH", enabled: true },
       { name: "WBNB/BTCB", token0: "WBNB", token1: "BTCB", enabled: true },
-      { name: "WETH/USDT", token0: "WETH", token1: "USDT", enabled: false },
-      { name: "WETH/BUSD", token0: "WETH", token1: "BUSD", enabled: false },
-      { name: "BTCB/USDT", token0: "BTCB", token1: "USDT", enabled: false },
-      { name: "BTCB/BUSD", token0: "BTCB", token1: "BUSD", enabled: false },
       { name: "CAKE/WBNB", token0: "CAKE", token1: "WBNB", enabled: true },
-      { name: "CAKE/USDT", token0: "CAKE", token1: "USDT", enabled: false },
       { name: "BANANA/WBNB", token0: "BANANA", token1: "WBNB", enabled: true },
       { name: "UNI/WBNB", token0: "UNI", token1: "WBNB", enabled: true },
       { name: "LINK/WBNB", token0: "LINK", token1: "WBNB", enabled: true },

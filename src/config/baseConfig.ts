@@ -6,13 +6,24 @@ export const baseConfig = {
   network: {
     name: "base" as const,
     chainId: 8453,
-    rpcUrl: process.env.BASE_RPC_URL || "https://mainnet.base.org",
+    rpcUrl:
+      process.env.BASE_RPC_URL ||
+      process.env.RPC_URL ||
+      "https://mainnet.base.org",
+    rpcWssUrl:
+      process.env.BASE_WSS_URL ||
+      process.env.RPC_WSS_URL ||
+      "",
   },
 
   contracts: {
     flashLoanArbitrage: process.env.BASE_CONTRACT_ADDRESS || "",
+    // Official Aave V3 PoolAddressesProvider on Base
     aavePoolAddressProvider: "0xe20fCBdBfFC4Dd138cE8b2E6FBb6CB49777ad64D",
   },
+
+  nativeTokenSymbol: "WETH",
+  quoteStableSymbol: "USDC",
 
   tokens: {
     WETH: "0x4200000000000000000000000000000000000006",
@@ -42,18 +53,14 @@ export const baseConfig = {
     dryRun: process.env.ENABLE_DRY_RUN !== "false",
 
     watchedPairs: [
-      { name: "BSWAP/WETH", token0: "BSWAP", token1: "WETH", enabled: false },
-      { name: "BSWAP/USDC", token0: "BSWAP", token1: "USDC", enabled: false },
-      { name: "TOSHI/WETH", token0: "TOSHI", token1: "WETH", enabled: false },
-      { name: "TOSHI/USDC", token0: "TOSHI", token1: "USDC", enabled: false },
-      { name: "UNI/WETH", token0: "UNI", token1: "WETH", enabled: false },
-      { name: "UNI/USDC", token0: "UNI", token1: "USDC", enabled: false },
-      { name: "LINK/WETH", token0: "LINK", token1: "WETH", enabled: false },
-      { name: "LINK/USDC", token0: "LINK", token1: "USDC", enabled: false },
-      { name: "AAVE/WETH", token0: "AAVE", token1: "WETH", enabled: false },
-      { name: "SUSHI/WETH", token0: "SUSHI", token1: "WETH", enabled: false },
-      { name: "WBTC/WETH", token0: "WBTC", token1: "WETH", enabled: false },
-      { name: "WBTC/USDC", token0: "WBTC", token1: "USDC", enabled: false },
+      { name: "WBTC/WETH", token0: "WBTC", token1: "WETH", enabled: true },
+      { name: "WBTC/USDC", token0: "WBTC", token1: "USDC", enabled: true },
+      { name: "LINK/WETH", token0: "LINK", token1: "WETH", enabled: true },
+      { name: "LINK/USDC", token0: "LINK", token1: "USDC", enabled: true },
+      { name: "AAVE/WETH", token0: "AAVE", token1: "WETH", enabled: true },
+      { name: "UNI/WETH", token0: "UNI", token1: "WETH", enabled: true },
+      { name: "UNI/USDC", token0: "UNI", token1: "USDC", enabled: true },
+      { name: "SUSHI/WETH", token0: "SUSHI", token1: "WETH", enabled: true },
     ],
   },
 };
