@@ -68,7 +68,7 @@ export async function getFeeData(
         };
       } catch (err: any) {
         console.warn(
-          `[Gas] Gas station failed (attempt \( {attempt}/ \){retries}):`,
+          `[Gas] Gas station failed (attempt ${attempt}/${retries}):`,
           err?.shortMessage || err?.message || err
         );
 

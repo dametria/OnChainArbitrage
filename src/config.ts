@@ -42,12 +42,12 @@ export const config = {
 
   trading: {
     minProfitBps: parseInt(process.env.MIN_PROFIT_BPS || "15", 10),
-    maxGasPrice: 500, // Gwei
+    maxGasPrice: parseInt(process.env.MAX_GAS_PRICE || "500", 10), // Gwei
     maxTradeSize: parseInt(process.env.MAX_TRADE_SIZE_USD || "10000", 10),
     minTradeSize: parseInt(process.env.MIN_TRADE_SIZE_USD || "50", 10),
     slippageTolerance: parseInt(process.env.SLIPPAGE_TOLERANCE_BPS || "150", 10),
     flashLoanFeeBps: 5, // 0.05%
-    minPoolLiquidity: parseInt(process.env.MIN_POOL_LIQUIDITY || "250", .25),
+    minPoolLiquidity: parseInt(process.env.MIN_POOL_LIQUIDITY || "250", 10),
     executionSlippageBuffer: parseInt(
       process.env.EXECUTION_SLIPPAGE_BPS || "20",
       10
@@ -56,9 +56,12 @@ export const config = {
 
   safety: {
     maxConcurrentTrades: 1,
-    maxDailyLoss: 50, // USD
-    emergencyGasPriceStop: 1000, // Gwei
-    minWalletBalance: 0.01,
+    maxDailyLoss: parseFloat(process.env.MAX_DAILY_LOSS || "50"), // USD
+    emergencyGasPriceStop: parseInt(
+      process.env.EMERGENCY_GAS_PRICE_STOP || "1000",
+      10
+    ), // Gwei
+    minWalletBalance: parseFloat(process.env.MIN_WALLET_BALANCE || "0.01"),
   },
 
   notifications: {
@@ -69,7 +72,7 @@ export const config = {
     },
   },
 
-  // Chain-specific (network, contracts, tokens, dexes, monitoring)
+  // Chain-specific (network, contracts, tokens, dexes, monitoring, nativeTokenSymbol, quoteStableSymbol)
   ...selectedChain,
 };
 
@@ -84,13 +87,34 @@ export function validateConfig(): void {
     errors.push(`Missing RPC URL for network "${config.network?.name}"`);
   }
 
-  if (!config.wallet.privateKey) {
-    errors.push("Missing PRIVATE_KEY in .env file");
+  if (!config.wallet.privateKey || config.wallet.privateKey.length < 64) {
+    errors.push("Missing or invalid PRIVATE_KEY in .env file");
   }
 
-  if (!config.contracts?.flashLoanArbitrage) {
+  // Contract address is REQUIRED and must not silently default to another chain
+  if (
+    !config.contracts?.flashLoanArbitrage ||
+    config.contracts.flashLoanArbitrage ===
+      "0x0000000000000000000000000000000000000000"
+  ) {
+    const envHint =
+      networkName === "polygon"
+        ? "POLYGON_CONTRACT_ADDRESS or CONTRACT_ADDRESS"
+        : networkName === "bsc"
+          ? "BSC_CONTRACT_ADDRESS"
+          : "BASE_CONTRACT_ADDRESS";
     errors.push(
-      `Missing FlashLoanArbitrage contract address for ${config.network?.name}`
+      `Missing FlashLoanArbitrage contract address for ${config.network?.name}. Set ${envHint} in .env`
+    );
+  }
+
+  // Aave provider is required on chains that use Aave flash loans
+  if (
+    (networkName === "polygon" || networkName === "base") &&
+    !config.contracts?.aavePoolAddressProvider
+  ) {
+    errors.push(
+      `Missing aavePoolAddressProvider for ${config.network?.name}`
     );
   }
 
@@ -111,6 +135,12 @@ export function validateConfig(): void {
   console.log(
     `✅ Configuration validated successfully (${config.network.name} – chainId ${config.network.chainId})`
   );
+  console.log(
+    `   Contract: ${config.contracts.flashLoanArbitrage}`
+  );
+  console.log(
+    `   Aave Provider: ${config.contracts.aavePoolAddressProvider || "(none)"}`
+  );
 }
 
 // ============================================================================
@@ -129,7 +159,7 @@ export function getTokenAddress(symbol: string): string {
 }
 
 export function getTokenSymbol(address: string): string {
-  const entry = Object.entries(config.tokens).find(
+  const entry = Object.entries(config.tokens as Record<string, string>).find(
     ([, addr]) => addr.toLowerCase() === address.toLowerCase()
   );
   return entry ? entry[0] : "UNKNOWN";
@@ -141,6 +171,16 @@ export function bpsToDecimal(bps: number): number {
 
 export function decimalToBps(decimal: number): number {
   return Math.round(decimal * 10000);
+}
+
+/** Native token symbol for the active chain (e.g. WMATIC, WBNB, WETH) */
+export function getNativeTokenSymbol(): string {
+  return (config as any).nativeTokenSymbol || "WETH";
+}
+
+/** Preferred stablecoin symbol for USD quotes on the active chain */
+export function getQuoteStableSymbol(): string {
+  return (config as any).quoteStableSymbol || "USDC";
 }
 
 export default config;
