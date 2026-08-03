@@ -9,7 +9,7 @@
  * ONLY at bot init + bot stop – never during the trading loop.
  */
 
-import { getPolygonFeeData } from "./gas";
+import { getFeeData } from "./gas";
 import { ethers } from "ethers";
 import { config } from "./config";
 import { logger } from "./logger";
@@ -168,8 +168,8 @@ export class TradeExecutor {
       logger.warning(
         `[WARNING] Both DEXes resolve to same router! This will lose money!`
       );
-      logger.warning(`   Buy: ${buyDex.dexName} (${dexRouter1})`);
-      logger.warning(`   Sell: ${sellDex.dexName} (${dexRouter2})`);
+      logger.warning(`   Buy: \( {buyDex.dexName} ( \){dexRouter1})`);
+      logger.warning(`   Sell: \( {sellDex.dexName} ( \){dexRouter2})`);
     }
 
     // Trading paths
@@ -180,7 +180,7 @@ export class TradeExecutor {
     const feeTier1 = buyDex.feeTier || 0;
     const feeTier2 = sellDex.feeTier || 0;
 
-    logger.debug(`[PARAMS] feeTier1=${feeTier1}, feeTier2=${feeTier2}`);
+    logger.debug(`[PARAMS] feeTier1=\( {feeTier1}, feeTier2= \){feeTier2}`);
 
     const abiCoder = new ethers.AbiCoder();
     return abiCoder.encode(
@@ -213,20 +213,20 @@ export class TradeExecutor {
 
     logger.debug(`[LIQUIDITY CHECK]`);
     logger.debug(
-      `  Buy DEX (${opportunity.buyDex.dexName}): $${buyDexLiquidity.toFixed(0)}`
+      `  Buy DEX (${opportunity.buyDex.dexName}): \[ {buyDexLiquidity.toFixed(0)}`
     );
     logger.debug(
-      `  Sell DEX (${opportunity.sellDex.dexName}): $${sellDexLiquidity.toFixed(0)}`
+      `  Sell DEX (${opportunity.sellDex.dexName}): \]{sellDexLiquidity.toFixed(0)}`
     );
-    logger.debug(`  Limiting liquidity: $${limitingLiquidity.toFixed(0)}`);
+    logger.debug(`  Limiting liquidity: \[ {limitingLiquidity.toFixed(0)}`);
 
     const minLiquidity = config.trading.minPoolLiquidity || 1000;
     if (limitingLiquidity < minLiquidity) {
       logger.warning(
-        `⚠️ Pool too small! $${limitingLiquidity.toFixed(0)} < $${minLiquidity} minimum liquidity`
+        `⚠️ Pool too small! \]{limitingLiquidity.toFixed(0)} < \[ {minLiquidity} minimum liquidity`
       );
       throw new Error(
-        `Pool too small: $${limitingLiquidity.toFixed(0)} < $${minLiquidity} minimum`
+        `Pool too small: \]{limitingLiquidity.toFixed(0)} < \[ {minLiquidity} minimum`
       );
     }
 
@@ -238,22 +238,22 @@ export class TradeExecutor {
     if (limitingLiquidity < 1000) {
       liquidityPercentage = 0.5;
       logger.debug(
-        `  💎 Small pool ($${limitingLiquidity.toFixed(0)}) - using 50% of liquidity`
+        `  💎 Small pool ( \]{limitingLiquidity.toFixed(0)}) - using 50% of liquidity`
       );
     } else if (limitingLiquidity < 5000) {
       liquidityPercentage = 0.7;
       logger.debug(
-        `  📊 Medium pool ($${limitingLiquidity.toFixed(0)}) - using 70% of liquidity`
+        `  📊 Medium pool (\[ {limitingLiquidity.toFixed(0)}) - using 70% of liquidity`
       );
     } else if (limitingLiquidity < 10000) {
       liquidityPercentage = 0.8;
       logger.debug(
-        `  💰 Large pool ($${limitingLiquidity.toFixed(0)}) - using 80% of liquidity`
+        `  💰 Large pool ( \]{limitingLiquidity.toFixed(0)}) - using 80% of liquidity`
       );
     } else {
       liquidityPercentage = 0.9;
       logger.debug(
-        `  🏦 Very large pool ($${limitingLiquidity.toFixed(0)}) - using 90% of liquidity`
+        `  🏦 Very large pool (\[ {limitingLiquidity.toFixed(0)}) - using 90% of liquidity`
       );
     }
 
@@ -271,13 +271,13 @@ export class TradeExecutor {
       const smallPoolMaxSize = Math.min(limitingLiquidity * 0.5, 2000);
       configMaxSize = Math.min(configMaxSize, smallPoolMaxSize);
       logger.debug(
-        `  🎯 Small pool: Capped at $${smallPoolMaxSize.toFixed(0)}`
+        `  🎯 Small pool: Capped at \]{smallPoolMaxSize.toFixed(0)}`
       );
     } else if (limitingLiquidity < 5000) {
       const mediumPoolMaxSize = Math.min(limitingLiquidity * 0.7, 5000);
       configMaxSize = Math.min(configMaxSize, mediumPoolMaxSize);
       logger.debug(
-        `  🎯 Medium pool: Capped at $${mediumPoolMaxSize.toFixed(0)}`
+        `  🎯 Medium pool: Capped at \[ {mediumPoolMaxSize.toFixed(0)}`
       );
     } else if (isV3LowFeeTier) {
       configMaxSize = Math.min(configMaxSize, 5000);
@@ -292,10 +292,10 @@ export class TradeExecutor {
     if (maxSafeTradeSize < effectiveMinSize) {
       const percentUsed = liquidityPercentage * 100;
       logger.warning(
-        `⚠️ Pool too small! ${percentUsed}% of $${limitingLiquidity.toFixed(0)} = $${maxSafeTradeSize.toFixed(0)} < min $${effectiveMinSize.toFixed(0)}`
+        `⚠️ Pool too small! ${percentUsed}% of \]{limitingLiquidity.toFixed(0)} = \[ {maxSafeTradeSize.toFixed(0)} < min \]{effectiveMinSize.toFixed(0)}`
       );
       throw new Error(
-        `Pool too small: Safe trade size $${maxSafeTradeSize.toFixed(0)} < min $${effectiveMinSize.toFixed(0)}`
+        `Pool too small: Safe trade size \[ {maxSafeTradeSize.toFixed(0)} < min \]{effectiveMinSize.toFixed(0)}`
       );
     }
 
@@ -303,7 +303,7 @@ export class TradeExecutor {
     tradeSize = Math.max(tradeSize, effectiveMinSize);
 
     logger.info(
-      `[TRADE SIZE] $${tradeSize.toFixed(2)} (${((tradeSize / limitingLiquidity) * 100).toFixed(1)}% of $${limitingLiquidity.toFixed(0)} pool)`
+      `[TRADE SIZE] \[ {tradeSize.toFixed(2)} (${((tradeSize / limitingLiquidity) * 100).toFixed(1)}% of \]{limitingLiquidity.toFixed(0)} pool)`
     );
 
     // Convert USD size → token amount
@@ -325,16 +325,16 @@ export class TradeExecutor {
 
     if (!isStablecoin0 && !isStablecoin1) {
       tokenPrice = config.network.name === "polygon" ? 0.4 : 2000;
-      logger.debug(`  💱 Using native token price: $${tokenPrice}`);
+      logger.debug(`  💱 Using native token price: \[ {tokenPrice}`);
     } else {
       logger.debug(
-        `  💱 Using stablecoin price: $1.00 (${token0Symbol}/${token1Symbol})`
+        `  💱 Using stablecoin price: $1.00 (\( {token0Symbol}/ \){token1Symbol})`
       );
     }
 
     const tokenAmount = tradeSize / tokenPrice;
     logger.debug(
-      `  🔢 Token amount: ${tokenAmount.toFixed(2)} tokens ($${tradeSize.toFixed(2)} / $${tokenPrice})`
+      `  🔢 Token amount: ${tokenAmount.toFixed(2)} tokens ( \]{tradeSize.toFixed(2)} / \[ {tokenPrice})`
     );
 
     return ethers.parseEther(tokenAmount.toString());
@@ -350,43 +350,26 @@ export class TradeExecutor {
     }
     if (token0Symbol === "WETH" || token0Symbol === "ETH") return 2000;
     if (token0Symbol === "WBTC" || token0Symbol === "BTC") return 60000;
-    // Default: treat as ~native on polygon, else ETH-ish
+    // Default: treat as \~native on polygon, else ETH-ish
     return config.network.name === "polygon" ? 0.4 : 2000;
   }
 
   // ─────────────────────────────────────────────
-  // Profitability validation (kept for reference / optional use)
+  // Profitability pre-check (rough, off-chain)
   // ─────────────────────────────────────────────
 
   private async validateProfitability(
     opportunity: ArbitrageOpportunity,
     flashLoanAmount: bigint
-  ): Promise<{
-    profitable: boolean;
-    reason?: string;
-    estimatedProfit?: number;
-  }> {
+  ): Promise<{ profitable: boolean; reason?: string; estimatedProfit?: number }> {
     try {
-      logger.debug(
-        `[FEE DEBUG] Buy DEX: ${opportunity.buyDex.dexName}, feeTier=${opportunity.buyDex.feeTier}`
-      );
-      logger.debug(
-        `[FEE DEBUG] Sell DEX: ${opportunity.sellDex.dexName}, feeTier=${opportunity.sellDex.feeTier}`
-      );
-
-      const buyDexFee = getDexFee(
-        opportunity.buyDex.dexName,
-        opportunity.buyDex.feeTier
-      );
-      const sellDexFee = getDexFee(
-        opportunity.sellDex.dexName,
-        opportunity.sellDex.feeTier
-      );
+      const buyDexFee = getDexFee(opportunity.buyDex.dexName);
+      const sellDexFee = getDexFee(opportunity.sellDex.dexName);
       const flashLoanFee = config.trading.flashLoanFeeBps;
       const totalFeeBps = buyDexFee + sellDexFee + flashLoanFee;
 
       logger.debug(
-        `[FEE BREAKDOWN] Buy: ${opportunity.buyDex.dexName} (${buyDexFee} bps) + Sell: ${opportunity.sellDex.dexName} (${sellDexFee} bps) + Flash Loan (${flashLoanFee} bps) = Total: ${totalFeeBps} bps`
+        `[FEE BREAKDOWN] Buy: \( {opportunity.buyDex.dexName} ( \){buyDexFee} bps) + Sell: \( {opportunity.sellDex.dexName} ( \){sellDexFee} bps) + Flash Loan (${flashLoanFee} bps) = Total: ${totalFeeBps} bps`
       );
 
       const spreadBps = opportunity.profitPercent * 100;
@@ -413,22 +396,22 @@ export class TradeExecutor {
         flashLoanFee: `${flashLoanFee} bps`,
         totalFees: `${totalFeeBps} bps`,
         netProfitBps: `${netProfitBps} bps`,
-        gasCost: `$${gasCostUsd.toFixed(2)}`,
-        grossProfit: `$${grossProfitUsd.toFixed(2)}`,
-        netProfit: `$${netProfitUsd.toFixed(2)}`,
+        gasCost: ` \]{gasCostUsd.toFixed(2)}`,
+        grossProfit: `\[ {grossProfitUsd.toFixed(2)}`,
+        netProfit: ` \]{netProfitUsd.toFixed(2)}`,
       });
 
       if (netProfitBps <= 0) {
         return {
           profitable: false,
-          reason: `Spread (${spreadBps} bps) < Fees (${totalFeeBps} bps). Would lose ${Math.abs(netProfitBps)} bps`,
+          reason: `Spread (\( {spreadBps} bps) < Fees ( \){totalFeeBps} bps). Would lose ${Math.abs(netProfitBps)} bps`,
         };
       }
 
       if (netProfitUsd <= 0) {
         return {
           profitable: false,
-          reason: `Gas cost ($${gasCostUsd.toFixed(2)}) > Gross profit ($${grossProfitUsd.toFixed(2)})`,
+          reason: `Gas cost (\[ {gasCostUsd.toFixed(2)}) > Gross profit ( \]{grossProfitUsd.toFixed(2)})`,
         };
       }
 
@@ -436,7 +419,7 @@ export class TradeExecutor {
       if (netProfitUsd < MIN_NET_PROFIT_USD) {
         return {
           profitable: false,
-          reason: `Net profit ($${netProfitUsd.toFixed(2)}) < $${MIN_NET_PROFIT_USD.toFixed(2)} minimum threshold`,
+          reason: `Net profit (\[ {netProfitUsd.toFixed(2)}) < \]{MIN_NET_PROFIT_USD.toFixed(2)} minimum threshold`,
         };
       }
 
@@ -491,7 +474,7 @@ export class TradeExecutor {
       if (!dexPairCheck.efficient) {
         logger.warning(`[REJECTED] DEX pair rejected: ${dexPairCheck.reason}`);
         logger.warning(
-          `   Estimated total gas: $${dexPairCheck.totalGasCost?.toFixed(2) || "N/A"}`
+          `   Estimated total gas: \[ {dexPairCheck.totalGasCost?.toFixed(2) || "N/A"}`
         );
         return {
           success: false,
@@ -501,7 +484,7 @@ export class TradeExecutor {
       }
 
       logger.info(
-        `[OK] DEX pair efficient! Estimated gas cost: $${dexPairCheck.totalGasCost?.toFixed(2)}`
+        `[OK] DEX pair efficient! Estimated gas cost: \]{dexPairCheck.totalGasCost?.toFixed(2)}`
       );
 
       // Encode parameters
@@ -540,17 +523,17 @@ export class TradeExecutor {
       logger.info(
         `   Amount: ${parseFloat(flashLoanAmountFormatted).toFixed(2)} tokens`
       );
-      logger.info(`   Value: $${tradeSizeUSD.toFixed(2)} USD`);
+      logger.info(`   Value: \[ {tradeSizeUSD.toFixed(2)} USD`);
       logger.info(`   Pair: ${opportunity.pair.name}`);
       logger.info(
-        `   Buy on: ${opportunity.buyDex.dexName} (${
+        `   Buy on: \( {opportunity.buyDex.dexName} ( \){
           opportunity.buyDex.feeTier
             ? opportunity.buyDex.feeTier / 100 + " bps"
             : "V2"
         })`
       );
       logger.info(
-        `   Sell on: ${opportunity.sellDex.dexName} (${
+        `   Sell on: \( {opportunity.sellDex.dexName} ( \){
           opportunity.sellDex.feeTier
             ? opportunity.sellDex.feeTier / 100 + " bps"
             : "V2"
@@ -571,7 +554,7 @@ export class TradeExecutor {
         if (!buyRouter || !sellRouter) {
           return {
             success: false,
-            error: `Missing router: buy=${buyRouter} sell=${sellRouter}`,
+            error: `Missing router: buy=\( {buyRouter} sell= \){sellRouter}`,
             reason: "simulation_error",
           };
         }
@@ -581,7 +564,7 @@ export class TradeExecutor {
         if (!tokenIn || !tokenOut) {
           return {
             success: false,
-            error: `Missing token addresses: tokenIn=${tokenIn} tokenOut=${tokenOut}`,
+            error: `Missing token addresses: tokenIn=\( {tokenIn} tokenOut= \){tokenOut}`,
             reason: "simulation_error",
           };
         }
@@ -614,7 +597,7 @@ export class TradeExecutor {
         }
 
         logger.info(
-          `[OK] Simulation profitable – estimated net: $${(simulation.netProfitUsd || 0).toFixed(2)}`
+          `[OK] Simulation profitable – estimated net: \]{(simulation.netProfitUsd || 0).toFixed(2)}`
         );
       } catch (simError: any) {
         logger.error("On-chain simulation failed:", simError?.message || simError);
@@ -639,13 +622,13 @@ export class TradeExecutor {
       // ── Build & send transaction ──
       const tokenAddress = opportunity.pair.token0Address;
 
-      // Prefer Polygon-specific fee helper if available, otherwise cached fee data
+      // Robust chain-agnostic fee data
       let maxFeePerGas: bigint;
       let maxPriorityFeePerGas: bigint;
       try {
-        const polyFees = await getPolygonFeeData(this.provider);
-        maxFeePerGas = polyFees.maxFeePerGas;
-        maxPriorityFeePerGas = polyFees.maxPriorityFeePerGas;
+        const fees = await getFeeData(this.provider);
+        maxFeePerGas = fees.maxFeePerGas!;
+        maxPriorityFeePerGas = fees.maxPriorityFeePerGas!;
       } catch {
         const feeData = await this.provider.getFeeData();
         maxFeePerGas = feeData.maxFeePerGas || feeData.gasPrice || 0n;
