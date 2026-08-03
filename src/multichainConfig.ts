@@ -46,8 +46,8 @@ export const MULTICHAIN_CONFIG: { [chainId: number]: ChainConfig } = {
       decimals: 18,
     },
     rpcUrls: {
-      http: process.env.POLYGON_RPC_URL || "https://polygon-mainnet.infura.io/v3/d90f2773b8cd47b6a14d98c0d0b6df24",
-      websocket: process.env.WSS_RPC_URL || "wss://polygon-mainnet.infura.io/ws/v3/d90f2773b8cd47b6a14d98c0d0b6df24",
+      http: process.env.POLYGON_RPC_URL || "https://polygon-mainnet.infura.io/ws/v3/0943af620e824e12a62823f73eacc3f5",
+      websocket: process.env.WSS_RPC_URL || "wss://polygon-mainnet.infura.io/ws/v3/0943af620e824e12a62823f73eacc3f5",
     },
     dexes: {
       quickswap: {
@@ -124,8 +124,8 @@ export const MULTICHAIN_CONFIG: { [chainId: number]: ChainConfig } = {
       decimals: 18,
     },
     rpcUrls: {
-      http: process.env.BSC_RPC_URL || "https://bsc-mainnet.infura.io/v3/d90f2773b8cd47b6a14d98c0d0b6df24",
-      websocket: process.env.BSC_WSS_URL || "wss://bsc-mainnet.infura.io/ws/v3/d90f2773b8cd47b6a14d98c0d0b6df24",
+      http: process.env.BSC_RPC_URL || "https://bsc-mainnet.infura.io/v3/0943af620e824e12a62823f73eacc3f5",
+      websocket: process.env.BSC_WSS_URL || "wss://bsc-mainnet.infura.io/ws/v3/0943af620e824e12a62823f73eacc3f5",
     },
     dexes: {
       pancakeswap: {
@@ -239,8 +239,8 @@ export const MULTICHAIN_CONFIG: { [chainId: number]: ChainConfig } = {
       decimals: 18,
     },
     rpcUrls: {
-      http: process.env.ARBITRUM_RPC_URL || "https://arb1.arbitrum.io/rpc",
-      websocket: process.env.ARBITRUM_WSS_URL || "wss://arb1.arbitrum.io/ws",
+      http: process.env.ARBITRUM_RPC_URL || "https://arbitrum-mainnet.infura.io/v3/0943af620e824e12a62823f73eacc3f5",
+      websocket: process.env.ARBITRUM_WSS_URL || "wss://arbitrum-mainnet.infura.io/ws/v3/0943af620e824e12a62823f73eacc3f5",
     },
     dexes: {
       sushiswap: {
