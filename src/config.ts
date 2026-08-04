@@ -8,9 +8,9 @@
 import * as dotenv from "dotenv";
 dotenv.config();
 
-import { polyConfig } from "./config/polyConfig";
-import { bscConfig } from "./config/bscConfig";
-import { baseConfig } from "./config/baseConfig";
+import { polyConfig } from "./config/polyConfig.ts";
+import { bscConfig } from "./config/bscConfig.ts";
+import { baseConfig } from "./config/baseConfig.ts";
 
 export { polyConfig, bscConfig, baseConfig };
 
