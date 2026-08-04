@@ -11,8 +11,8 @@ export const bscConfig = {
     name: "bsc" as const,
     chainId: 56,
     rpcUrl:
-     https: process.env.BSC_RPC_URL || "https://bsc-mainnet.infura.io/v3/0943af620e824e12a62823f73eacc3f5",
-    websocket: process.env.BSC_WSS_URL || "wss://bsc-mainnet.infura.io/ws/v3/0943af620e824e12a62823f73eacc3f5",
+      process.env.BSC_RPC_URL || "https://bsc-mainnet.infura.io/v3/0943af620e824e12a62823f73eacc3f5",
+    rpcWssUrl: process.env.BSC_WSS_URL || "wss://bsc-mainnet.infura.io/ws/v3/0943af620e824e12a62823f73eacc3f5",
   },
 
   contracts: {
