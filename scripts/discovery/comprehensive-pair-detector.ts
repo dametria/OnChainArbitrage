@@ -11,7 +11,7 @@
  */
 
 import { ethers } from 'ethers';
-import config from '../../src/config.ts';
+import config, { polyConfig, bscConfig, baseConfig } from '../../src/config';
 import fs from 'fs';
 import path from 'path';
 
@@ -186,9 +186,9 @@ interface PairCandidate {
 async function generatePairCandidates(chain: 'polygon' | 'bsc' | 'base'): Promise<PairCandidate[]> {
   console.log(`\n🔍 Generating pair candidates for ${chain.toUpperCase()}...`);
 
-  const tokens = chain === 'polygon' ? config.tokens : 
-                 chain === 'bsc' ? config.tokensBSC :
-                 config.tokensBase;
+  const tokens = chain === 'polygon' ? polyConfig.tokens : 
+                 chain === 'bsc' ? bscConfig.tokens :
+                 baseConfig.tokens;
 
   const tokenSymbols = Object.keys(tokens);
   const pairs: PairCandidate[] = [];
