@@ -12,7 +12,8 @@ export const bscConfig = {
     chainId: 56,
     rpcUrl:
       process.env.BSC_RPC_URL || "https://bsc-mainnet.infura.io/v3/0943af620e824e12a62823f73eacc3f5",
-    rpcWssUrl: process.env.BSC_WSS_URL || "wss://bsc-mainnet.infura.io/ws/v3/0943af620e824e12a62823f73eacc3f5",
+    rpcWssUrl:
+      process.env.BSC_WSS_URL || "wss://bsc-mainnet.infura.io/ws/v3/0943af620e824e12a62823f73eacc3f5",
   },
 
   contracts: {
