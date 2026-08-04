@@ -16,8 +16,12 @@ export { polyConfig, bscConfig, baseConfig };
 
 export type SupportedChain = "polygon" | "bsc" | "base";
 
-
-const networkName = (process.env.NETWORK || "polygon") as SupportedChain;
+// Require the NETWORK env var to avoid accidentally defaulting to Polygon
+const rawNetwork = process.env.NETWORK;
+if (!rawNetwork) {
+  throw new Error('Missing NETWORK env var. Set NETWORK to one of: polygon, bsc, base');
+}
+const networkName = rawNetwork as SupportedChain;
 
 const chainConfigs = {
   polygon: polyConfig,
@@ -58,7 +62,8 @@ export const config = {
   },
   
   monitoring: { 
-    dryRun: process.env.ENABLE_DRY_RUN !== "true",
+    // Corrected logic: set dryRun=true only when ENABLE_DRY_RUN is explicitly "true"
+    dryRun: process.env.ENABLE_DRY_RUN === "true",
    },
 
   safety: {
