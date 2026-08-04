@@ -35,41 +35,62 @@ function getNativeTokenUsdPrice(chainId?: number): number {
  * Map DEX names to their router addresses.
  * Prefer values from the active chain config when available.
  */
+// Safe access: config.dexes is a union of chain-specific shapes
+const _dexes = (config.dexes ?? {}) as Record<string, string | undefined>;
+
 export const DEX_ROUTERS: Record<string, string> = {
-  // QuickSwap
-  QuickSwap: config.dexes?.quickswap,
-  Quickswap: config.dexes?.quickswap,
-  quickswap: config.dexes?.quickswap,
+  // QuickSwap / Pancake / BaseSwap aliases
+  QuickSwap: _dexes.quickswap ?? _dexes.pancakeswap ?? _dexes.baseswap ?? "",
+  Quickswap: _dexes.quickswap ?? _dexes.pancakeswap ?? _dexes.baseswap ?? "",
+  quickswap: _dexes.quickswap ?? _dexes.pancakeswap ?? _dexes.baseswap ?? "",
 
   // SushiSwap
-  SushiSwap: config.dexes?.sushiswap,
-  Sushiswap: config.dexes?.sushiswap,
-  sushiswap: config.dexes?.sushiswap,
-  SUSHI: config.dexes?.sushiswap,
+  SushiSwap: _dexes.sushiswap ?? "",
+  Sushiswap: _dexes.sushiswap ?? "",
+  sushiswap: _dexes.sushiswap ?? "",
+  SUSHI: _dexes.sushiswap ?? "",
 
   // Uniswap V3
-  UniswapV3: config.dexes?.uniswapv3,
-  Uniswapv3: config.dexes?.uniswapv3,
-  uniswapv3: config.dexes?.uniswapv3,
-  UNI: config.dexes?.uniswapv3,
-  Uniswap: config.dexes?.uniswapv3,
-  uniswap: config.dexes?.uniswapv3,
+  UniswapV3: _dexes.uniswapv3 ?? _dexes.uniswapV3 ?? "",
+  Uniswapv3: _dexes.uniswapv3 ?? _dexes.uniswapV3 ?? "",
+  uniswapv3: _dexes.uniswapv3 ?? _dexes.uniswapV3 ?? "",
+  UNI: _dexes.uniswapv3 ?? _dexes.uniswapV3 ?? "",
+  Uniswap: _dexes.uniswapv3 ?? _dexes.uniswapV3 ?? "",
+  uniswap: _dexes.uniswapv3 ?? _dexes.uniswapV3 ?? "",
 
   // Dfyn
-  Dfyn: config.dexes?.dfyn,
-  dfyn: config.dexes?.dfyn,
-  DFYN: config.dexes?.dfyn,
+  Dfyn: _dexes.dfyn ?? "",
+  dfyn: _dexes.dfyn ?? "",
+  DFYN: _dexes.dfyn ?? "",
 
   // ApeSwap
-  ApeSwap: config.dexes?.apeswap,
-  Apeswap: config.dexes?.apeswap,
-  apeswap: config.dexes?.apeswap,
-  APE: config.dexes?.apeswap,
+  ApeSwap: _dexes.apeswap ?? "",
+  Apeswap: _dexes.apeswap ?? "",
+  apeswap: _dexes.apeswap ?? "",
+  APE: _dexes.apeswap ?? "",
 
   // Balancer
-  Balancer: config.dexes?.balancer,
-  balancer: config.dexes?.balancer,
-  BAL: config.dexes?.balancer,
+  Balancer: _dexes.balancer ?? "",
+  balancer: _dexes.balancer ?? "",
+  BAL: _dexes.balancer ?? "",
+
+  // BSC extras
+  PancakeSwap: _dexes.pancakeswap ?? "",
+  pancakeswap: _dexes.pancakeswap ?? "",
+  BiSwap: _dexes.biswap ?? "",
+  biswap: _dexes.biswap ?? "",
+  BakerySwap: _dexes.bakeryswap ?? "",
+  bakeryswap: _dexes.bakeryswap ?? "",
+  MDEX: _dexes.mdex ?? "",
+  mdex: _dexes.mdex ?? "",
+
+  // Base extras
+  BaseSwap: _dexes.baseswap ?? "",
+  baseswap: _dexes.baseswap ?? "",
+  SwapBased: _dexes.swapbased ?? "",
+  swapbased: _dexes.swapbased ?? "",
+  Aerodrome: _dexes.aerodrome ?? "",
+  aerodrome: _dexes.aerodrome ?? "",
 };
 
 /**
@@ -110,7 +131,7 @@ export function getDexRouter(dexName: string): string {
   console.warn(
     `[WARNING] DEX "${dexName}" not found in router mapping and no chain config available.`
   );
-  return config.dexes?.quickswap || "0x0000000000000000000000000000000000000000";
+  return _dexes.quickswap ?? _dexes.pancakeswap ?? _dexes.baseswap ?? "0x0000000000000000000000000000000000000000";
 }
 
 /**

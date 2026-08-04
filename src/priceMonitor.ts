@@ -173,9 +173,12 @@ const APPROX_USD_PRICES: Record<string, number> = {
   [config.tokens.DAI?.toLowerCase() || ""]: 1,
 
   // Major assets (update these periodically)
-  [config.tokens.WETH?.toLowerCase() || ""]: 2400,
-  [config.tokens.WBTC?.toLowerCase() || ""]: 65000,
-  [config.tokens.WMATIC?.toLowerCase() || ""]: 0.40,
+  // Use Record cast because tokens shape differs across chains
+  [((config.tokens as Record<string, string | undefined>).WETH)?.toLowerCase() || ""]: 2400,
+  [((config.tokens as Record<string, string | undefined>).WBTC)?.toLowerCase() ||
+   ((config.tokens as Record<string, string | undefined>).BTCB)?.toLowerCase() || ""]: 65000,
+  [((config.tokens as Record<string, string | undefined>).WMATIC)?.toLowerCase() ||
+   ((config.tokens as Record<string, string | undefined>).WBNB)?.toLowerCase() || ""]: 0.40,
 };
 
 function getTokenUsdPrice(tokenAddress: string): number {
@@ -431,13 +434,13 @@ export class PriceMonitor {
       } else {
         // Fallback using known multipliers
         let usdMultiplier = 1;
-        if (token1Address.toLowerCase() === config.tokens.WETH?.toLowerCase()) {
+        if (token1Address.toLowerCase() === ((config.tokens as Record<string, string | undefined>).WETH)?.toLowerCase()) {
           usdMultiplier = 2400;
-        } else if (token1Address.toLowerCase() === config.tokens.WBTC?.toLowerCase()) {
+        } else if (token1Address.toLowerCase() === ((config.tokens as Record<string, string | undefined>).WBTC)?.toLowerCase()) {
           usdMultiplier = 65000;
-        } else if (token0Address.toLowerCase() === config.tokens.WETH?.toLowerCase()) {
+        } else if (token0Address.toLowerCase() === ((config.tokens as Record<string, string | undefined>).WETH)?.toLowerCase()) {
           usdMultiplier = 2400;
-        } else if (token0Address.toLowerCase() === config.tokens.WBTC?.toLowerCase()) {
+        } else if (token0Address.toLowerCase() === ((config.tokens as Record<string, string | undefined>).WBTC)?.toLowerCase()) {
           usdMultiplier = 65000;
         }
 
@@ -697,19 +700,19 @@ export class PriceMonitor {
     const prices = await Promise.all([
       this.getPriceFromDex(
         "quickswap",
-        config.dexes.quickswap,
+        ((config.dexes as Record<string, string | undefined>).quickswap ?? ""),
         pair.token0Address,
         pair.token1Address
       ),
       this.getPriceFromDex(
         "sushiswap",
-        config.dexes.sushiswap,
+        ((config.dexes as Record<string, string | undefined>).sushiswap ?? ""),
         pair.token0Address,
         pair.token1Address
       ),
       this.getPriceFromDex(
         "uniswapv3",
-        config.dexes.uniswapv3,
+        ((config.dexes as Record<string, string | undefined>).uniswapv3 ?? ""),
         pair.token0Address,
         pair.token1Address
       ),

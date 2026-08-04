@@ -1,7 +1,7 @@
 import { ethers, Contract, Log, JsonRpcProvider } from 'ethers';
 import { wssManager } from './websocketProvider';
 import { loadTradingPairs, TradingPair as DynamicTradingPair } from './dynamicPairs';
-import config from './config';
+import config, { polyConfig, bscConfig, baseConfig } from './config';
 import logger from './logger';
 
 /**
@@ -26,33 +26,34 @@ const PAIR_ABI = [
 // Get DEX configuration based on current chain
 function getDEXConfig() {
   const network = config.network.name;
-  
+  const dexes = (config.dexes ?? {}) as Record<string, string | undefined>;
+
   if (network === 'bsc') {
     // BSC DEXes
     return [
-      { name: 'PancakeSwap', routerAddress: config.dexesBSC.pancakeswap },
-      { name: 'ApeSwap', routerAddress: config.dexesBSC.apeswap },
-      { name: 'BiSwap', routerAddress: config.dexesBSC.biswap },
-      { name: 'BakerySwap', routerAddress: config.dexesBSC.bakeryswap },
-      { name: 'MDEX', routerAddress: config.dexesBSC.mdex },
+      { name: 'PancakeSwap', routerAddress: bscConfig.dexes.pancakeswap },
+      { name: 'ApeSwap', routerAddress: bscConfig.dexes.apeswap },
+      { name: 'BiSwap', routerAddress: bscConfig.dexes.biswap },
+      { name: 'BakerySwap', routerAddress: bscConfig.dexes.bakeryswap },
+      { name: 'MDEX', routerAddress: bscConfig.dexes.mdex },
     ];
   } else if (network === 'base') {
     // Base DEXes
     return [
-      { name: 'BaseSwap', routerAddress: config.dexesBase.baseswap },
-      { name: 'SushiSwap', routerAddress: config.dexesBase.sushiswap },
-      { name: 'SwapBased', routerAddress: config.dexesBase.swapbased },
-      { name: 'Aerodrome', routerAddress: config.dexesBase.aerodrome },
+      { name: 'BaseSwap', routerAddress: baseConfig.dexes.baseswap },
+      { name: 'SushiSwap', routerAddress: baseConfig.dexes.sushiswap },
+      { name: 'SwapBased', routerAddress: baseConfig.dexes.swapbased },
+      { name: 'Aerodrome', routerAddress: baseConfig.dexes.aerodrome },
     ];
   } else {
     // Polygon DEXes (default)
     return [
-      { name: 'QuickSwap', routerAddress: config.dexes.quickswap },
-      { name: 'SushiSwap', routerAddress: config.dexes.sushiswap },
-      { name: 'ApeSwap', routerAddress: config.dexes.apeswap },
-      { name: 'Dfyn', routerAddress: config.dexes.dfyn },
-      { name: 'Polycat', routerAddress: config.dexes.polycat },
-      { name: 'JetSwap', routerAddress: config.dexes.jetswap },
+      { name: 'QuickSwap', routerAddress: polyConfig.dexes.quickswap },
+      { name: 'SushiSwap', routerAddress: polyConfig.dexes.sushiswap },
+      { name: 'ApeSwap', routerAddress: polyConfig.dexes.apeswap },
+      { name: 'Dfyn', routerAddress: polyConfig.dexes.dfyn },
+      { name: 'Polycat', routerAddress: polyConfig.dexes.polycat },
+      { name: 'JetSwap', routerAddress: polyConfig.dexes.jetswap },
     ];
   }
 }

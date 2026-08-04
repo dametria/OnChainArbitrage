@@ -8,6 +8,35 @@ import { ethers, FeeData } from "ethers";
  * 2. provider.getFeeData()
  * 3. Configurable static fallback (or throw)
  */
+
+interface GasStationResponse {
+  fast?: {
+    maxPriorityFee?: number;
+    maxPriorityFeePerGas?: number;
+    maxFee?: number;
+    maxFeePerGas?: number;
+  };
+}
+
+function makeFeeData(
+  maxFeePerGas: bigint | null,
+  maxPriorityFeePerGas: bigint | null,
+  gasPrice: bigint | null = null
+): FeeData {
+  return {
+    maxFeePerGas,
+    maxPriorityFeePerGas,
+    gasPrice,
+    toJSON() {
+      return {
+        maxFeePerGas: this.maxFeePerGas?.toString() ?? null,
+        maxPriorityFeePerGas: this.maxPriorityFeePerGas?.toString() ?? null,
+        gasPrice: this.gasPrice?.toString() ?? null,
+      };
+    },
+  } as FeeData;
+}
+
 export async function getFeeData(
   provider: ethers.Provider,
   options: {
@@ -48,24 +77,24 @@ export async function getFeeData(
 
         if (!res.ok) throw new Error(`Gas Station HTTP ${res.status}`);
 
-        const data = await res.json();
+        const data = (await res.json()) as GasStationResponse;
 
         // Expect the common shape: { fast: { maxFee, maxPriorityFee } } (values in gwei)
         const maxPriorityFeePerGas = ethers.parseUnits(
-          String(Math.ceil(data.fast?.maxPriorityFee ?? data.fast?.maxPriorityFeePerGas)),
+          String(
+            Math.ceil(
+              data.fast?.maxPriorityFee ?? data.fast?.maxPriorityFeePerGas ?? 30
+            )
+          ),
           "gwei"
         );
         const maxFeePerGas = ethers.parseUnits(
-          String(Math.ceil(data.fast?.maxFee ?? data.fast?.maxFeePerGas)),
+          String(Math.ceil(data.fast?.maxFee ?? data.fast?.maxFeePerGas ?? 50)),
           "gwei"
         );
 
         console.log(`[Gas] Using gas station (attempt ${attempt})`);
-        return {
-          maxFeePerGas,
-          maxPriorityFeePerGas,
-          gasPrice: null, // EIP-1559 style
-        };
+        return makeFeeData(maxFeePerGas, maxPriorityFeePerGas, null);
       } catch (err: any) {
         console.warn(
           `[Gas] Gas station failed (attempt ${attempt}/${retries}):`,
@@ -95,11 +124,11 @@ export async function getFeeData(
     // Fallback to legacy gasPrice if the chain/provider only returns that
     if (feeData.gasPrice) {
       console.log("[Gas] Using provider.getFeeData() (legacy gasPrice)");
-      return {
-        maxFeePerGas: feeData.gasPrice,
-        maxPriorityFeePerGas: feeData.gasPrice / 2n, // conservative tip
-        gasPrice: feeData.gasPrice,
-      };
+      return makeFeeData(
+        feeData.gasPrice,
+        feeData.gasPrice / 2n, // conservative tip
+        feeData.gasPrice
+      );
     }
   } catch (err) {
     console.warn("[Gas] provider.getFeeData() failed:", err);
@@ -108,14 +137,11 @@ export async function getFeeData(
   // --- 3. Static fallback (or fail) ---
   if (staticFallback) {
     console.log("[Gas] Using static fallback values");
-    return {
-      maxFeePerGas: ethers.parseUnits(String(staticFallback.maxFeePerGasGwei), "gwei"),
-      maxPriorityFeePerGas: ethers.parseUnits(
-        String(staticFallback.maxPriorityFeePerGasGwei),
-        "gwei"
-      ),
-      gasPrice: null,
-    };
+    return makeFeeData(
+      ethers.parseUnits(String(staticFallback.maxFeePerGasGwei), "gwei"),
+      ethers.parseUnits(String(staticFallback.maxPriorityFeePerGasGwei), "gwei"),
+      null
+    );
   }
 
   throw new Error("Unable to obtain fee data from any source");

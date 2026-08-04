@@ -695,7 +695,7 @@ export class TradeExecutor {
       }
 
       const effectiveGasPrice =
-        receipt.gasPrice ?? receipt.effectiveGasPrice ?? maxFeePerGas;
+        receipt.gasPrice ?? maxFeePerGas;
       const gasCostEth = parseFloat(
         ethers.formatEther(receipt.gasUsed * effectiveGasPrice)
       );
