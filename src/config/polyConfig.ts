@@ -8,15 +8,15 @@ export const polyConfig = {
     chainId: 137,
     rpcUrl:
      process.env.POLYGON_RPC_URL || "https://polygon-mainnet.infura.io/v3/0943af620e824e12a62823f73eacc3f5",
-    rpcWssUrl: process.env.POLYGON_WSS_URL || "wss://polygon-mainnet.infura.io/ws/v3/0943af620e824e12a62823f73eacc3f5",
+    rpcWssUrl: 
+     process.env.POLYGON_WSS_URL || "wss://polygon-mainnet.infura.io/ws/v3/0943af620e824e12a62823f73eacc3f5",
   },
 
   contracts: {
     // Prefer explicit per-chain env; fall back to generic CONTRACT_ADDRESS only on Polygon
     flashLoanArbitrage:
       process.env.POLYGON_CONTRACT_ADDRESS ||"0xF5DE7efa7D2eEc0907bE81FB7Ed4d36aDf1FdC06",
-      process.env.CONTRACT_ADDRESS ||
-      "0xF5DE7efa7D2eEc0907bE81FB7Ed4d36aDf1FdC06",
+      process.env.CONTRACT_ADDRESS || "",
     // Official Aave V3 PoolAddressesProvider on Polygon
     aavePoolAddressProvider:"0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb",
   },
