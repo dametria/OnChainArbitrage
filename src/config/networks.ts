@@ -92,7 +92,7 @@ export const NETWORKS: { [key: string]: NetworkConfig } = {
   polygon: {
     chainId: 137,
     name: "Polygon PoS",
-    rpcUrl: process.env.POLYGON_RPC_URL || "",
+    rpcUrl: process.env.POLYGON_RPC_URL || "https://polygon-mainnet.infura.io/v3/0943af620e824e12a62823f73eacc3f5",
     nativeCurrency: { name: "MATIC", symbol: "MATIC", decimals: 18 },
     blockTime: 2,
     aavePoolProvider: "0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb",
