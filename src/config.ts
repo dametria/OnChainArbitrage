@@ -58,7 +58,7 @@ export const config = {
   },
   
   monitoring: { 
-    dryRun: process.env.ENABLE_DRY_RUN !== "false",
+    dryRun: process.env.ENABLE_DRY_RUN !== "true",
    },
 
   safety: {
