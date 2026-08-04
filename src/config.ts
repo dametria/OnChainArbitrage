@@ -56,6 +56,8 @@ export const config = {
       10
     ),
   },
+  
+  monitoring: { ?this.DryRun: process.env.ENABLE_DRY_RUN || "false"},
 
   safety: {
     maxConcurrentTrades: 1,
