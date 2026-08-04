@@ -9,7 +9,7 @@ export const polyConfig = {
     rpcUrl:
       process.env.POLYGON_RPC_URL || "https://polygon-mainnet.infura.io/v3/0943af620e824e12a62823f73eacc3f5",
       process.env.RPC_URL || "https://polygon-mainnet.infura.io/v3/0943af620e824e12a62823f73eacc3f5",
-    rpcWssUrl:
+    rpcUrl:
       process.env.POLYGON_WSS_URL || "wss://polygon-mainnet.infura.io/ws/v3/0943af620e824e12a62823f73eacc3f5",
       process.env.RPC_WSS_URL || "wss://polygon-mainnet.infura.io/ws/v3/0943af620e824e12a62823f73eacc3f5",
   },
