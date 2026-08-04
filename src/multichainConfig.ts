@@ -46,8 +46,8 @@ export const MULTICHAIN_CONFIG: { [chainId: number]: ChainConfig } = {
       decimals: 18,
     },
     rpcUrls: {
-      http: process.env.POLYGON_RPC_URL || "https://polygon-rpc.com",
-      websocket: process.env.POLYGON_WSS_URL || "wss://polygon-mainnet.g.alchemy.com/v2/YOUR_KEY",
+      http: process.env.POLYGON_RPC_URL || "https://polygon-mainnet.infura.io/v3/0943af620e824e12a62823f73eacc3f5",
+      websocket: process.env.POLYGON_WSS_URL || "wss://polygon-mainnet.infura.io/ws/v3/0943af620e824e12a62823f73eacc3f5",
     },
     dexes: {
       quickswap: {
@@ -124,8 +124,8 @@ export const MULTICHAIN_CONFIG: { [chainId: number]: ChainConfig } = {
       decimals: 18,
     },
     rpcUrls: {
-      http: process.env.BSC_RPC_URL || "https://bsc-dataseed.binance.org",
-      websocket: process.env.BSC_WSS_URL || "wss://bsc-ws-node.nariox.org:443",
+      http: process.env.BSC_RPC_URL || "https://bsc-mainnet.infura.io/v3/0943af620e824e12a62823f73eacc3f5",
+      websocket: process.env.BSC_WSS_URL || "wss://bsc-mainnet.infura.io/ws/v3/0943af620e824e12a62823f73eacc3f5",
     },
     dexes: {
       pancakeswap: {
