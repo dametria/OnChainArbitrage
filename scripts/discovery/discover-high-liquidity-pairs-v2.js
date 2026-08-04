@@ -32,7 +32,7 @@ dotenv.config(); // Load environment variables from .env
 // CONFIGURATION
 // ============================================================================
 
-const RPC_URL = process.env.POLYGON_RPC_URL || "https://polygon-rpc.com";
+const RPC_URL = process.env.POLYGON_RPC_URL || ;
 const provider = new ethers.JsonRpcProvider(RPC_URL);
 
 // Minimum thresholds
