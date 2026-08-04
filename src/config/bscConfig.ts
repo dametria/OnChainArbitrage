@@ -11,17 +11,17 @@ export const bscConfig = {
     name: "bsc" as const,
     chainId: 56,
     rpcUrl:
-      process.env.BSC_RPC_URL ||
+      process.env.BSC_RPC_URL || "https://bsc-mainnet.infura.io/v3/0943af620e824e12a62823f73eacc3f5"
       process.env.RPC_URL ||
       "https://bsc-dataseed.binance.org",
     rpcWssUrl:
-      process.env.BSC_WSS_URL ||
+      process.env.BSC_WSS_URL || "wss://bsc-mainnet.infura.io/ws/v3/0943af620e824e12a62823f73eacc3f5"
       process.env.RPC_WSS_URL ||
       "",
   },
 
   contracts: {
-    flashLoanArbitrage: process.env.BSC_CONTRACT_ADDRESS || "",
+    flashLoanArbitrage: process.env.BSC_CONTRACT_ADDRESS || "0x7A6224E5DbC1b76c57a3acA0317FEA336A62341e",
     // No official Aave V3 PoolAddressesProvider on BSC – leave empty or set your own
     aavePoolAddressProvider: process.env.BSC_AAVE_PROVIDER || "",
   },
