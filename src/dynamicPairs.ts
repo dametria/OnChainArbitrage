@@ -8,9 +8,9 @@
 
 import * as fs from "fs";
 import * as path from "path";
-import { polyConfig } from "./chainConfigs/polyConfig";
-import { bscConfig } from "./chainConfigs/bscConfig";
-import { baseConfig } from "./chainConfigs/baseConfig";
+import { polyConfig } from "./config/polyConfig";
+import { bscConfig } from "./config/bscConfig";
+import { baseConfig } from "./config/baseConfig";
 
 export interface TradingPair {
   name: string;
@@ -69,17 +69,15 @@ function getFallbackPairs(): TradingPair[] {
   const { network, config: chainConfig } = getChainConfig();
 
   const tokens = chainConfig.tokens as Record<string, string>;
-  const pairs = chainConfig.monitoring?.watchedPairs || [];
+  const pairs = (chainConfig.monitoring?.watchedPairs ?? []) as TradingPair[];
 
-  const fallbackPairs = pairs
+  const fallbackPairs: TradingPair[] = pairs
     .map((pair) => ({
       ...pair,
       token0Address: tokens[pair.token0],
       token1Address: tokens[pair.token1],
     }))
-    .filter(
-      (p) => p.enabled && p.token0Address && p.token1Address
-    ) as TradingPair[];
+    .filter((p) => Boolean(p.enabled && p.token0Address && p.token1Address));
 
   console.log(
     `[DYNAMIC PAIRS] Fallback enabled pairs (${network}): ${fallbackPairs.length}`
