@@ -8,16 +8,16 @@
 import * as dotenv from "dotenv";
 dotenv.config();
 
-import { polyConfig } from "./config/polyConfig.ts";
-import { bscConfig } from "./config/bscConfig.ts";
-import { baseConfig } from "./config/baseConfig.ts";
+import { polyConfig } from "./config/polyConfig";
+import { bscConfig } from "./config/bscConfig";
+import { baseConfig } from "./config/baseConfig";
 
 export { polyConfig, bscConfig, baseConfig };
 
 export type SupportedChain = "polygon" | "bsc" | "base";
 
 
-const networkName = (process.env.NETWORK || "polygon"| "bsc" | "base") as SupportedChain;
+const networkName = (process.env.NETWORK || "polygon") as SupportedChain;
 
 const chainConfigs = {
   polygon: polyConfig,
