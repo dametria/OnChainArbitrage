@@ -17,7 +17,7 @@ export { polyConfig, bscConfig, baseConfig };
 export type SupportedChain = "polygon" | "bsc" | "base";
 
 
-const networkName = (process.env.NETWORK || "polygon") as SupportedChain;
+const networkName = (process.env.NETWORK || "polygon"| "bsc" | "base") as SupportedChain;
 
 const chainConfigs = {
   polygon: polyConfig,
