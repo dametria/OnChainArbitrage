@@ -6,6 +6,8 @@ export const polyConfig = {
     symbol: "MATIC",
     decimals: 18,
   },
+  // Uniswap V3 quoter on Polygon (Quoter V2)
+  uniswapQuoter: "0x61fFE014bA17989E743c5F6cB21bF9697530B21e",
   rpcUrls: {
     http: process.env.POLYGON_RPC_URL as string,
     websocket: process.env.POLYGON_WSS_URL as string,
