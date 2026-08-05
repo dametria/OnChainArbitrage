@@ -9,7 +9,7 @@ export const bscConfig = {
   // Optional Uniswap V3 quoter address for BSC (provided)
   uniswapQuoter: process.env.BSC_UNISWAP_QUOTER || "0x78D78E420Da98ad378D7799bE8f4AF69033EB077",
   // Optional aave provider supplied by chain config (BSC Aave v3 provider)
-  aavePoolAddressProvider: process.env.BSC_AAVE_PROVIDER || "0xff75B6da14FfbbfD355Daf7a2731456b3562Ba6D",
+  aavePoolAddressProvider: process.env.BSC_AAVE_PROVIDER || "0xff75B6da14FfbbfD355Daf7a2731456b3562Ba6D.",
   rpcUrls: {
     http: process.env.BSC_RPC_URL as string,
     websocket: process.env.BSC_WSS_URL as string,
@@ -51,7 +51,7 @@ export const bscConfig = {
     WETH: "0x2170Ed0880ac9A755fd29B2688956BD959F933F8",
     USDC: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
     USDT: "0x55d398326f99059fF775485246999027B3197955",
-    DAI: "0x1AF3F329e8BE154074D8769D1FFa4eE058B1DBc3",
+    DAI: ""0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
     BTCB: "0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c",
     LINK: "0xF8A0BF9cF54Bb92F17374d9e9A321E6a111a51bD",
     AAVE: "0xfb6115445Bff7b52FeB98650C87f44907E58f802",
