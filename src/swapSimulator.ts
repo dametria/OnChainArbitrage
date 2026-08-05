@@ -7,13 +7,10 @@ const ROUTER_V2_ABI = [
 ];
 
 // Uniswap V3 Quoter V2 - This is the correct contract for simulating V3 swaps
-// Polygon address: 0x61fFE014bA17989E743c5F6cB21bF9697530B21e
+// ABI (minimal for quoteExactInputSingle)
 const QUOTER_V2_ABI = [
-  'function quoteExactInputSingle((address tokenIn, address tokenOut, uint256 amountIn, uint24 fee, uint160 sqrtPriceLimitX96)) external returns (uint256 amountOut, uint160 sqrtPriceX96After, uint32 initializedTicksCrossed, uint256 gasEstimate)'
+  'function quoteExactInputSingle((address tokenIn, address tokenOut, uint256 amountIn, uint24 fee, uint160 sqrtPriceLimitX96)) external returns (uint256 amountOut, uint160 sqrtPriceX96After, uint160[3])'
 ];
-
-// Polygon Uniswap V3 Quoter V2 address
-const POLYGON_QUOTER_V2 = '0x61fFE014bA17989E743c5F6cB21bF9697530B21e';
 
 // Execution slippage buffer (accounts for price movement between detection and execution)
 const getExecutionSlippageBps = () => config?.trading?.executionSlippageBuffer || 20;
@@ -89,8 +86,19 @@ export async function simulateV3Swap(
   if (amountIn == null) {
     throw new Error('simulateV3Swap: amountIn is null/undefined');
   }
+
+  // Resolve quoter address: prefer explicit param, then runtime config
+  const quoterAddr = _quoter || (config.network && (config.network as any).uniswapQuoter) || '';
+
+  if (!quoterAddr) {
+    logger.warning('V3 quoter not configured for this chain — using conservative fallback estimate');
+    // Conservative fallback: assume 0.5% price impact (multiply by 0.995)
+    const estimatedOut = (amountIn * 995n) / 1000n;
+    return estimatedOut;
+  }
+
   try {
-    const quoterContract = new ethers.Contract(POLYGON_QUOTER_V2, QUOTER_V2_ABI, provider);
+    const quoterContract = new ethers.Contract(quoterAddr, QUOTER_V2_ABI, provider);
 
     const quoteParams = {
       tokenIn,
@@ -98,18 +106,43 @@ export async function simulateV3Swap(
       amountIn,
       fee,
       sqrtPriceLimitX96: 0,
-    };
+    } as any;
 
-    const result = await quoterContract.quoteExactInputSingle.staticCall(quoteParams);
-    const amountOut = result[0];
+    // Some providers/ABIs expose a static call helper — attempt the expected call
+    let result: any;
+    try {
+      // Try the standard call first
+      if (typeof quoterContract.quoteExactInputSingle === 'function') {
+        // Prefer callStatic if available
+        if (quoterContract.callStatic && typeof quoterContract.callStatic.quoteExactInputSingle === 'function') {
+          result = await quoterContract.callStatic.quoteExactInputSingle(quoteParams);
+        } else {
+          result = await quoterContract.quoteExactInputSingle(quoteParams);
+        }
+      } else if (quoterContract.quoteExactInputSingle.staticCall) {
+        // Legacy helper
+        result = await quoterContract.quoteExactInputSingle.staticCall(quoteParams);
+      } else {
+        throw new Error('Quoter contract does not expose quoteExactInputSingle');
+      }
+    } catch (innerErr) {
+      // Some quoter ABIs expect positional args instead of a single struct
+      try {
+        result = await quoterContract.callStatic.quoteExactInputSingle(tokenIn, tokenOut, fee, amountIn, 0);
+      } catch (posErr) {
+        throw innerErr || posErr;
+      }
+    }
+
+    const amountOut = Array.isArray(result) ? result[0] : result;
 
     logger.debug(
       `V3 simulation: ${ethers.formatEther(amountIn)} → ${ethers.formatEther(amountOut)} (fee: ${fee / 100} bps)`
     );
 
-    return amountOut;
+    return BigInt(amountOut.toString());
   } catch (error: any) {
-    logger.warning(`V3 simulation failed: ${error.message}`);
+    logger.warning(`V3 simulation failed: ${error?.message || error}`);
     const estimatedOut = (amountIn * 995n) / 1000n;
     logger.warning(`Using fallback estimate: ${ethers.formatEther(estimatedOut)}`);
     return estimatedOut;
@@ -156,7 +189,7 @@ export async function simulateArbitrageRoute(
     // Step 1: Simulate BUY swap (token0 -> token1)
     let buyOutput: bigint;
     if (buyDexType === 'v3' && buyFee) {
-      buyOutput = await simulateV3Swap(provider, buyRouter, token0, token1, buyFee, amountIn);
+      buyOutput = await simulateV3Swap(provider, buyRouter || '', token0, token1, buyFee, amountIn);
     } else {
       const buyPath = [token0, token1];
       buyOutput = await simulateV2Swap(provider, buyRouter, amountIn, buyPath);
@@ -167,7 +200,7 @@ export async function simulateArbitrageRoute(
     // Step 2: Simulate SELL swap (token1 -> token0)
     let finalAmount: bigint;
     if (sellDexType === 'v3' && sellFee) {
-      finalAmount = await simulateV3Swap(provider, sellRouter, token1, token0, sellFee, buyOutput);
+      finalAmount = await simulateV3Swap(provider, sellRouter || '', token1, token0, sellFee, buyOutput);
     } else {
       const sellPath = [token1, token0];
       finalAmount = await simulateV2Swap(provider, sellRouter, buyOutput, sellPath);
