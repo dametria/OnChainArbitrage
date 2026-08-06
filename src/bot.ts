@@ -64,9 +64,13 @@ class ArbitrageBot {
     // Initialize provider (prefer WSS from .env via config.network.rpcUrl)
     const rpcUrl = ethers.JsonRpcProvider;
 
-    if (rpcUrl && rpcUrl.startsWith("wss://")) {
-      // WebSocket provider
-      this.provider = new ethers.WebSocketProvider(rpcUrl);
+    if (typeof rpcUrl === "string" && rpcUrl.startsWith("wss://")) {
+  // WebSocket path
+} else if (typeof rpcUrl === "string" && rpcUrl.startsWith("http")) {
+  // HTTP path
+} else {
+  throw new Error(`Invalid rpcUrl: expected string, got ${typeof rpcUrl}`);
+};
 
       // Optional connection logging
       this.provider.on("block", (blockNumber: number) => {
