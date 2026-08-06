@@ -67,7 +67,7 @@ class ArbitrageBot {
     const url = typeof rpcUrl === "string" ? rpcUrl : rpcUrl?.url ?? rpcUrl?.wss ?? rpcUrl?.http;
 
 if (typeof url !== "string") {
-  throw new Error(`rpcUrl must be a string, got: ${JSON.stringify(rpcUrl)}`);
+  throw new Error("rpcUrl must be a string");
 }
 
 if (url.startsWith("wss://")) {
