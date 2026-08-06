@@ -89,10 +89,66 @@ export const NETWORKS: { [key: string]: NetworkConfig } = {
     ],
     explorer: "https://arbiscan.io",
   },
+  bsc: {
+    chainId: 56,
+    name: "Binance Smart Chain",
+    rpcUrl: process.env.BSC_RPC_URL || "",
+    nativeCurrency: { name: "BNB", symbol: "BNB", decimals: 18 },
+    blockTime: 2,
+    aavePoolProvider: "",
+    dexes: [
+      {
+        name: "Uniswap V3",
+        router: "",
+        factory: "",
+        fee: 30,
+      },
+      {
+        name: "PancakeSwap",
+        router: "",
+        factory: "",
+        fee: 30,
+      },
+      {
+        name: "ApeSwap",
+        router: "",
+        factory: "",
+        fee: 30,
+      },
+    ],
+    commonTokens: [
+      {
+        symbol: "WETH",
+        address: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
+        decimals: 18,
+      },
+      {
+        symbol: "USDC",
+        address: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+        decimals: 6,
+      },
+      {
+        symbol: "USDT",
+        address: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+        decimals: 6,
+      },
+      {
+        symbol: "DAI",
+        address: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+        decimals: 18,
+      },
+      {
+        symbol: "BNB",
+        address: "0x912CE59144191C1204E64559FE8253a0e49E6548",
+        decimals: 18,
+      },
+    ],
+    explorer: "https://bscscan.io",
+  },
   polygon: {
     chainId: 137,
     name: "Polygon PoS",
-    rpcUrl: process.env.POLYGON_RPC_URL || "https://polygon-mainnet.infura.io/v3/0943af620e824e12a62823f73eacc3f5",
+    rpcUrl: process.env.POLYGON_RPC_URL || "",
     nativeCurrency: { name: "MATIC", symbol: "MATIC", decimals: 18 },
     blockTime: 2,
     aavePoolProvider: "0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb",
