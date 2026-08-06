@@ -84,13 +84,9 @@ this.provider.on("block", (blockNumber: number) => {
 this.provider.on("error", (error: any) => {
   logger.error("WebSocket error:", error?.message || error);
 });
-
+else {
 logger.success("🚀 Using WebSocket (WSS) provider");
-} else {
-  // Fallback to HTTP
-  this.provider = new ethers.JsonRpcProvider(rpcUrl || "");
-  logger.info("Using HTTP RPC provider");
-}
+} 
     // Initialize wallet
     this.wallet = new ethers.Wallet(config.wallet.privateKey, this.provider);
 
