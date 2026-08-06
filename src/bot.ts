@@ -1,13 +1,13 @@
 /**
  * 🤖 Arbitrage Bot - Main Entry Point
- * 
+ *
  * This is the heart of your arbitrage bot. It orchestrates:
  * 1. Price monitoring across multiple DEXes
  * 2. Opportunity detection
  * 3. Trade execution
  * 4. Performance tracking
  * 5. Safety checks
- * 
+ *
  * ARCHITECTURE:
  * - PriceMonitor: Fetches prices and finds opportunities
  * - TradeExecutor: Executes trades on profitable opportunities
@@ -65,43 +65,44 @@ class ArbitrageBot {
   private wssUrl: string | null = null;
 
   constructor() {
-  const rpcConfig = config.network.rpcUrl;
+    const rpcConfig = config.network.rpcUrl;
 
-  const url =
-    typeof rpcConfig === "string"
-      ? rpcConfig
-      : rpcConfig?.url ?? rpcConfig?.http;
+    const url =
+      typeof rpcConfig === "string"
+        ? rpcConfig
+        : rpcConfig?.url ?? rpcConfig?.http;
 
-  if (typeof url !== "string" || !url.trim()) {
-    throw new Error("config.network.rpcUrl must resolve to a non-empty string");
+    if (typeof url !== "string" || !url.trim()) {
+      throw new Error("config.network.rpcUrl must resolve to a non-empty string");
+    }
+
+    this.rpcUrl = url;
+    this.initProvider(false);
+
+    this.wallet = new ethers.Wallet(config.wallet.privateKey, this.provider);
+    this.priceMonitor = new PriceMonitor(this.provider as any);
+    this.tradeExecutor = new TradeExecutor(this.provider as any, this.wallet);
+
+    this.stats = {
+      startTime: Date.now(),
+      opportunitiesFound: 0,
+      tradesExecuted: 0,
+      successfulTrades: 0,
+      failedTrades: 0,
+      totalProfit: 0,
+      totalGasCost: 0,
+      netProfit: 0,
+      failureReasons: {
+        simulation_unprofitable: 0,
+        simulation_error: 0,
+        high_gas_cost: 0,
+        on_chain_revert: 0,
+        pool_too_small: 0,
+        unknown: 0,
+      },
+    };
   }
 
-  this.rpcUrl = url;
-  this.initProvider(false);
-
-  this.wallet = new ethers.Wallet(config.wallet.privateKey, this.provider);
-  this.priceMonitor = new PriceMonitor(this.provider as any);
-  this.tradeExecutor = new TradeExecutor(this.provider as any, this.wallet);
-
-  this.stats = {
-    startTime: Date.now(),
-    opportunitiesFound: 0,
-    tradesExecuted: 0,
-    successfulTrades: 0,
-    failedTrades: 0,
-    totalProfit: 0,
-    totalGasCost: 0,
-    netProfit: 0,
-    failureReasons: {
-      simulation_unprofitable: 0,
-      simulation_error: 0,
-      high_gas_cost: 0,
-      on_chain_revert: 0,
-      pool_too_small: 0,
-      unknown: 0,
-    },
-  };
-}
   private initProvider(useWebSocket: boolean) {
     if (useWebSocket && this.wssUrl) {
       try {
@@ -177,7 +178,7 @@ class ArbitrageBot {
       this.initProvider(true);
     }, this.reconnectDelayMs);
   }
-}
+
   /**
    * Initialize and validate bot setup
    */
@@ -185,7 +186,7 @@ class ArbitrageBot {
     logger.banner();
     logger.info("Initializing Arbitrage Bot...");
     logger.separator();
-    
+
     // Initialize data logger
     const dataLogger = getLogger();
     logger.info(`Data logging enabled: ./logs/`);
@@ -289,9 +290,9 @@ class ArbitrageBot {
           sellOn: opportunity.sellDex.dexName,
           sellPrice: opportunity.sellDex.price.toFixed(4),
           profitPercent: `${opportunity.profitPercent.toFixed(3)}%`,
-          estimatedProfit: `\[ {opportunity.profitUsd.toFixed(2)}`,
-          estimatedGas: ` \]{opportunity.estimatedGasCost.toFixed(2)}`,
-          netProfit: `\[ {opportunity.netProfit.toFixed(2)}`,
+          estimatedProfit: `$${opportunity.profitUsd.toFixed(2)}`,
+          estimatedGas: `$${opportunity.estimatedGasCost.toFixed(2)}`,
+          netProfit: `$${opportunity.netProfit.toFixed(2)}`,
         });
 
         // Execute trade
@@ -332,29 +333,32 @@ class ArbitrageBot {
         logger.success("Trade Statistics Updated:", {
           totalTrades: this.stats.tradesExecuted,
           successRate: `${((this.stats.successfulTrades / this.stats.tradesExecuted) * 100).toFixed(1)}%`,
-          totalProfit: ` \]{this.stats.totalProfit.toFixed(2)}`,
-          totalGasCost: `\[ {this.stats.totalGasCost.toFixed(2)}`,
-          netProfit: ` \]{this.stats.netProfit.toFixed(2)}`,
+          totalProfit: `$${this.stats.totalProfit.toFixed(2)}`,
+          totalGasCost: `$${this.stats.totalGasCost.toFixed(2)}`,
+          netProfit: `$${this.stats.netProfit.toFixed(2)}`,
         });
       } else {
         this.stats.failedTrades++;
-        
+
         // Track failure reason for better debugging
         if (result.reason) {
           this.stats.failureReasons[result.reason]++;
-          
+
           // Only log as error if it's not expected (unprofitable and pool_too_small are expected)
-          if (result.reason === 'simulation_unprofitable' || result.reason === 'pool_too_small') {
+          if (result.reason === "simulation_unprofitable" || result.reason === "pool_too_small") {
             logger.debug(`[FILTERED] Trade rejected (${result.reason}): ${result.error}`);
           } else {
             logger.error(`Trade failed (${result.reason}):`, { error: result.error });
           }
         } else {
+          this.stats.failureReasons.unknown++;
           logger.error("Trade failed:", { error: result.error });
         }
       }
     } catch (error) {
       logger.error("Failed to execute trade", error);
+      this.stats.failedTrades++;
+      this.stats.failureReasons.unknown++;
     }
   }
 
@@ -427,11 +431,11 @@ class ArbitrageBot {
       this.isRunning = true;
       logger.success("Bot started successfully!");
       logger.info("Monitoring for arbitrage opportunities...");
-      
+
       // DISABLED: Pair update scheduler (was overwriting manual pairs)
       // logger.info("⏰ Starting pair update scheduler (every 4 hours)...");
       // startScheduler();
-      
+
       logger.separator();
 
       // Start monitoring loop
@@ -497,7 +501,7 @@ class ArbitrageBot {
         (this.stats.successfulTrades / this.stats.tradesExecuted) * 100;
       logger.info(`Success Rate: ${successRate.toFixed(1)}%`);
     }
-    
+
     // Display failure reasons breakdown
     if (this.stats.failedTrades > 0) {
       logger.info(`\nFailure Breakdown:`);
@@ -509,8 +513,8 @@ class ArbitrageBot {
       logger.info(`  ❌ Unknown errors: ${this.stats.failureReasons.unknown}`);
     }
 
-    logger.info(`Total Profit: \[ {this.stats.totalProfit.toFixed(2)}`);
-    logger.info(`Total Gas Cost: \]{this.stats.totalGasCost.toFixed(2)}`);
+    logger.info(`Total Profit: $${this.stats.totalProfit.toFixed(2)}`);
+    logger.info(`Total Gas Cost: $${this.stats.totalGasCost.toFixed(2)}`);
     logger.info(`Net Profit: $${this.stats.netProfit.toFixed(2)}`);
     logger.separator();
   }
@@ -569,8 +573,10 @@ async function main() {
 
 // ESM equivalent of require.main === module
 // Checks if this file is being run directly (not imported)
-const isMainModule = import.meta.url === `file://${process.argv[1]}` || 
-                     process.argv[1]?.endsWith('bot.ts');
+const isMainModule =
+  import.meta.url === `file://${process.argv[1]}` ||
+  process.argv[1]?.endsWith("bot.ts") ||
+  process.argv[1]?.endsWith("bot.js");
 
 if (isMainModule) {
   main();
