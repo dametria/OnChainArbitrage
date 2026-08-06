@@ -99,6 +99,11 @@ class Logger {
     }
   }
 
+  /** Alias for warning() – some call sites use logger.warn */
+  warn(message: string, data?: any): void {
+    this.warning(message, data);
+  }
+
   /**
    * Error logs (something went wrong)
    */

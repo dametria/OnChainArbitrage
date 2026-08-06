@@ -1,13 +1,13 @@
 /**
  * 🤖 Arbitrage Bot - Main Entry Point
- *
+ * 
  * This is the heart of your arbitrage bot. It orchestrates:
  * 1. Price monitoring across multiple DEXes
  * 2. Opportunity detection
  * 3. Trade execution
  * 4. Performance tracking
  * 5. Safety checks
- *
+ * 
  * ARCHITECTURE:
  * - PriceMonitor: Fetches prices and finds opportunities
  * - TradeExecutor: Executes trades on profitable opportunities
@@ -16,13 +16,13 @@
  */
 
 import { ethers } from "ethers";
-import { config, validateConfig } from "./config.js";
-import { logger } from "./logger.js";
-import { PriceMonitor } from "./priceMonitor.js";
-import { TradeExecutor } from "./tradeExecutor.js";
-import type { ArbitrageOpportunity } from "./priceMonitor.js";
-import { getLogger, stopLogger } from "./dataLogger.js";
-import { startScheduler, stopScheduler, getScheduler } from "./pairScheduler.js";
+import { config, validateConfig } from "./config";
+import { logger } from "./logger";
+import { PriceMonitor } from "./priceMonitor";
+import { TradeExecutor } from "./tradeExecutor";
+import type { ArbitrageOpportunity } from "./priceMonitor";
+import { getLogger, stopLogger } from "./dataLogger";
+import { startScheduler, stopScheduler, getScheduler } from "./pairScheduler";
 
 // ============================================================================
 // BOT STATISTICS
@@ -59,30 +59,20 @@ class ArbitrageBot {
   private isRunning: boolean = false;
   private stats: BotStats;
   private monitoringInterval: NodeJS.Timeout | null = null;
-  private reconnectTimer: NodeJS.Timeout | null = null;
-  private reconnectDelayMs = 3000;
-  private rpcUrl!: string;
-  private wssUrl: string | null = null;
 
   constructor() {
-    const rpcConfig = config.network.rpcUrl;
+    // Resolve RPC URL from either legacy config.network.rpcUrl or multichain rpcUrls.http
+    const rpcUrl = this.resolveRpcUrl();
+    this.provider = new ethers.JsonRpcProvider(rpcUrl);
 
-    const url =
-      typeof rpcConfig === "string"
-        ? rpcConfig
-        : rpcConfig?.url ?? rpcConfig?.http;
-
-    if (typeof url !== "string" || !url.trim()) {
-      throw new Error("config.network.rpcUrl must resolve to a non-empty string");
-    }
-
-    this.rpcUrl = url;
-    this.initProvider(false);
-
+    // Initialize wallet
     this.wallet = new ethers.Wallet(config.wallet.privateKey, this.provider);
+
+    // Initialize modules
     this.priceMonitor = new PriceMonitor(this.provider as any);
     this.tradeExecutor = new TradeExecutor(this.provider as any, this.wallet);
 
+    // Initialize statistics
     this.stats = {
       startTime: Date.now(),
       opportunitiesFound: 0,
@@ -103,80 +93,23 @@ class ArbitrageBot {
     };
   }
 
-  private initProvider(useWebSocket: boolean) {
-    if (useWebSocket && this.wssUrl) {
-      try {
-        const wsProvider = new ethers.WebSocketProvider(this.wssUrl);
-        this.provider = wsProvider;
-
-        logger.success("🚀 Using WebSocket (WSS) provider");
-
-        wsProvider.on("block", (blockNumber: number) => {
-          if (blockNumber % 100 === 0) {
-            logger.info(`📡 WSS connected | Block: ${blockNumber}`);
-          }
-        });
-
-        wsProvider.on("error", (error: unknown) => {
-          const message =
-            error instanceof Error ? error.message : String(error);
-
-          logger.error("WebSocket error:", message);
-        });
-
-        wsProvider.on("debug", (info: unknown) => {
-          logger.debug?.("WebSocket debug:", info);
-        });
-
-        const socket = (wsProvider as any)._websocket;
-        if (socket && typeof socket.on === "function") {
-          socket.on("close", (code: number) => {
-            logger.error(`WebSocket closed with code ${code}`);
-            this.scheduleReconnect();
-          });
-
-          socket.on("error", (error: unknown) => {
-            const message =
-              error instanceof Error ? error.message : String(error);
-
-            logger.error("Underlying WebSocket error:", message);
-          });
-        }
-
-        return;
-      } catch (error: unknown) {
-        const message =
-          error instanceof Error ? error.message : String(error);
-
-        logger.error(`WSS init failed, falling back to HTTP: ${message}`);
-      }
+  /** Support both config.network.rpcUrl and config.rpcUrls.http shapes */
+  private resolveRpcUrl(): string {
+    const anyConfig = config as any;
+    const url =
+      anyConfig.network?.rpcUrl ||
+      anyConfig.rpcUrls?.http ||
+      anyConfig.rpcUrl ||
+      process.env.POLYGON_RPC_URL ||
+      process.env.BSC_RPC_URL ||
+      process.env.BASE_RPC_URL ||
+      "";
+    if (typeof url !== "string" || !url.trim()) {
+      throw new Error(
+        "No RPC URL found. Set POLYGON_RPC_URL / BSC_RPC_URL / BASE_RPC_URL or config.network.rpcUrl"
+      );
     }
-
-    this.provider = new ethers.JsonRpcProvider(this.rpcUrl);
-    logger.info("🌐 Using HTTP RPC provider");
-  }
-
-  private scheduleReconnect() {
-    if (this.reconnectTimer) return;
-
-    logger.warn(`Reconnecting WebSocket in ${this.reconnectDelayMs}ms...`);
-
-    this.reconnectTimer = setTimeout(() => {
-      this.reconnectTimer = null;
-
-      try {
-        const current = this.provider as any;
-        current?.removeAllListeners?.();
-        current?.destroy?.();
-      } catch (error: unknown) {
-        const message =
-          error instanceof Error ? error.message : String(error);
-
-        logger.warn(`Provider cleanup warning: ${message}`);
-      }
-
-      this.initProvider(true);
-    }, this.reconnectDelayMs);
+    return url;
   }
 
   /**
@@ -186,7 +119,7 @@ class ArbitrageBot {
     logger.banner();
     logger.info("Initializing Arbitrage Bot...");
     logger.separator();
-
+    
     // Initialize data logger
     const dataLogger = getLogger();
     logger.info(`Data logging enabled: ./logs/`);
@@ -339,26 +272,23 @@ class ArbitrageBot {
         });
       } else {
         this.stats.failedTrades++;
-
+        
         // Track failure reason for better debugging
         if (result.reason) {
           this.stats.failureReasons[result.reason]++;
-
+          
           // Only log as error if it's not expected (unprofitable and pool_too_small are expected)
-          if (result.reason === "simulation_unprofitable" || result.reason === "pool_too_small") {
+          if (result.reason === 'simulation_unprofitable' || result.reason === 'pool_too_small') {
             logger.debug(`[FILTERED] Trade rejected (${result.reason}): ${result.error}`);
           } else {
             logger.error(`Trade failed (${result.reason}):`, { error: result.error });
           }
         } else {
-          this.stats.failureReasons.unknown++;
           logger.error("Trade failed:", { error: result.error });
         }
       }
     } catch (error) {
       logger.error("Failed to execute trade", error);
-      this.stats.failedTrades++;
-      this.stats.failureReasons.unknown++;
     }
   }
 
@@ -431,11 +361,11 @@ class ArbitrageBot {
       this.isRunning = true;
       logger.success("Bot started successfully!");
       logger.info("Monitoring for arbitrage opportunities...");
-
+      
       // DISABLED: Pair update scheduler (was overwriting manual pairs)
       // logger.info("⏰ Starting pair update scheduler (every 4 hours)...");
       // startScheduler();
-
+      
       logger.separator();
 
       // Start monitoring loop
@@ -501,7 +431,7 @@ class ArbitrageBot {
         (this.stats.successfulTrades / this.stats.tradesExecuted) * 100;
       logger.info(`Success Rate: ${successRate.toFixed(1)}%`);
     }
-
+    
     // Display failure reasons breakdown
     if (this.stats.failedTrades > 0) {
       logger.info(`\nFailure Breakdown:`);
@@ -565,20 +495,17 @@ async function main() {
   // Start the bot
   try {
     await bot.start();
+
+    // Keep the process running
+    // The bot will run until SIGINT (Ctrl+C) or an error occurs
   } catch (error) {
     logger.error("Fatal error:", error);
     process.exit(1);
   }
 }
 
-// ESM equivalent of require.main === module
-// Checks if this file is being run directly (not imported)
-const isMainModule =
-  import.meta.url === `file://${process.argv[1]}` ||
-  process.argv[1]?.endsWith("bot.ts") ||
-  process.argv[1]?.endsWith("bot.js");
-
-if (isMainModule) {
+// Run the bot
+if (require.main === module) {
   main();
 }
 
