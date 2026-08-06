@@ -178,34 +178,6 @@ class ArbitrageBot {
     }, this.reconnectDelayMs);
   }
 }
-    // Initialize wallet
-    this.wallet = new ethers.Wallet(config.wallet.privateKey, this.provider);
-
-    // Initialize modules
-    this.priceMonitor = new PriceMonitor(this.provider as any);
-    this.tradeExecutor = new TradeExecutor(this.provider as any, this.wallet);
-
-    // Initialize statistics
-    this.stats = {
-      startTime: Date.now(),
-      opportunitiesFound: 0,
-      tradesExecuted: 0,
-      successfulTrades: 0,
-      failedTrades: 0,
-      totalProfit: 0,
-      totalGasCost: 0,
-      netProfit: 0,
-      failureReasons: {
-        simulation_unprofitable: 0,
-        simulation_error: 0,
-        high_gas_cost: 0,
-        on_chain_revert: 0,
-        pool_too_small: 0,
-        unknown: 0,
-      },
-    };
-  }
-
   /**
    * Initialize and validate bot setup
    */
@@ -603,10 +575,6 @@ const isMainModule = import.meta.url === `file://${process.argv[1]}` ||
 if (isMainModule) {
   main();
 }
-
-// Always run when this file is executed directly
-main();
-
 
 export default ArbitrageBot;
 export { ArbitrageBot };
