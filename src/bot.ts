@@ -65,18 +65,17 @@ class ArbitrageBot {
   private wssUrl: string | null = null;
 
   constructor() {
-    // Read from your actual config value, not ethers.JsonRpcProvider
-    const rpcConfig = config.network.rpcUrl;
+  const rpcConfig = config.network.rpcUrl;
 
-    const url =
-      typeof rpcConfig === "string"
-        ? rpcConfig
-        : rpcConfig?.url ?? rpcConfig?.wss ?? rpcConfig?.http;
+  const url =
+    typeof rpcConfig === "string"
+      ? rpcConfig
+      : rpcConfig?.url ?? rpcConfig?.wss ?? rpcConfig?.http;
 
-    if (typeof url !== "string" || !url.trim()) {
-      throw new Error("config.network.rpcUrl must resolve to a non-empty string");
-    }
-
+  if (typeof url !== "string" || !url.trim()) {
+    throw new Error("config.network.rpcUrl must resolve to a non-empty string");
+  }
+    
   private initProvider(useWebSocket: boolean) {
     if (useWebSocket && this.wssUrl) {
       try {
