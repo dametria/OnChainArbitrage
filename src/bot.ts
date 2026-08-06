@@ -70,12 +70,38 @@ class ArbitrageBot {
   const url =
     typeof rpcConfig === "string"
       ? rpcConfig
-      : rpcConfig?.url ?? rpcConfig?.wss ?? rpcConfig?.http;
+      : rpcConfig?.url ?? rpcConfig?.http;
 
   if (typeof url !== "string" || !url.trim()) {
     throw new Error("config.network.rpcUrl must resolve to a non-empty string");
   }
-    
+
+  this.rpcUrl = url;
+  this.initProvider(false);
+
+  this.wallet = new ethers.Wallet(config.wallet.privateKey, this.provider);
+  this.priceMonitor = new PriceMonitor(this.provider as any);
+  this.tradeExecutor = new TradeExecutor(this.provider as any, this.wallet);
+
+  this.stats = {
+    startTime: Date.now(),
+    opportunitiesFound: 0,
+    tradesExecuted: 0,
+    successfulTrades: 0,
+    failedTrades: 0,
+    totalProfit: 0,
+    totalGasCost: 0,
+    netProfit: 0,
+    failureReasons: {
+      simulation_unprofitable: 0,
+      simulation_error: 0,
+      high_gas_cost: 0,
+      on_chain_revert: 0,
+      pool_too_small: 0,
+      unknown: 0,
+    },
+  };
+}
   private initProvider(useWebSocket: boolean) {
     if (useWebSocket && this.wssUrl) {
       try {
