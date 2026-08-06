@@ -62,7 +62,7 @@ class ArbitrageBot {
 
   constructor() {
     // Initialize provider (prefer WSS from .env via config.network.rpcUrl)
-    const rpcUrl = config.network.rpcUrl;
+    const rpcUrl = ethers.JsonRpcProvider;
 
     if (rpcUrl && rpcUrl.startsWith("wss://")) {
       // WebSocket provider
@@ -82,7 +82,7 @@ class ArbitrageBot {
       logger.success("🚀 Using WebSocket (WSS) provider");
     } else {
       // Fallback to HTTP
-      this.provider = new ethers.JsonRpcProvider(rpcUrl || "https://polygon-mainnet.g.alchemy.com/v2/W6kj4k2ZgM0hqw0JK5eIc");
+      this.provider = new ethers.JsonRpcProvider(rpcUrl || "");
       logger.info("Using HTTP RPC provider");
     }
 
