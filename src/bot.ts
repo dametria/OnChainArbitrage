@@ -59,6 +59,7 @@ class ArbitrageBot {
   private isRunning: boolean = false;
   private stats: BotStats;
   private monitoringInterval: NodeJS.Timeout | null = null;
+  private reconnectTimer: NodeJS.Timeout | null = null;
 
   constructor() {
     // Initialize provider (prefer WSS from .env via config.network.rpcUrl)
