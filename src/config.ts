@@ -31,7 +31,7 @@ export const config = {
   // Contract addresses
   contracts: {
     // YOUR deployed FlashLoanArbitrage contract on Polygon mainnet! ✅
-    flashLoanArbitrage: process.env.CONTRACT_ADDRESS || "0x671A158DA6248e965698726ebb5e3512AF171Af3",
+    flashLoanArbitrage: process.env.CONTRACT_ADDRESS || "0xF5DE7efa7D2eEc0907bE81FB7Ed4d36aDf1FdC06",
     
     // Aave V3 addresses on Polygon mainnet
     aavePoolAddressProvider: "0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb",
@@ -390,7 +390,7 @@ export const config = {
     
     // Minimum pool liquidity (in USD)
     // LOWERED to $1000 to access more pools while still filtering dead pools
-    minPoolLiquidity: parseInt(process.env.MIN_POOL_LIQUIDITY || "1000", 10),
+    minPoolLiquidity: parseInt(process.env.MIN_POOL_LIQUIDITY || "250", .25),
     
     // Execution slippage buffer (NEW) - adds buffer to account for real execution
     // 20 bps = 0.2% additional buffer on top of detected spread
@@ -403,7 +403,7 @@ export const config = {
   monitoring: {
     // How often to check prices (in milliseconds)
     // 1000ms = check every 1 second
-    priceCheckInterval: 1000,
+    priceCheckInterval: 15000,
 
     // Pairs to monitor for arbitrage (Polygon pairs)
     // HIGH-LIQUIDITY STRATEGY: 20 verified high-liquidity pairs
