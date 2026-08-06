@@ -94,13 +94,13 @@ export const NETWORKS: { [key: string]: NetworkConfig } = {
     name: "Binance Smart Chain",
     rpcUrl: process.env.BSC_RPC_URL || "",
     nativeCurrency: { name: "BNB", symbol: "BNB", decimals: 18 },
-    blockTime: 2,
-    aavePoolProvider: "",
+    blockTime: 3,
+    aavePoolProvider: "0xff75B6da14FfbbfD355Daf7a2731456b3562Ba6D",
     dexes: [
       {
-        name: "Uniswap V3",
-        router: "",
-        factory: "",
+        name: "Biswap",
+        router: "0x3a6d8ca21D1CF76F653A67577FA0D27453350dD8",
+        factory: "0x858E3312ed3A876947EA49d572A7C42DE08af7EE",
         fee: 30,
       },
       {
