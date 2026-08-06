@@ -86,7 +86,7 @@ if (url.startsWith("wss://")) {
       });
 
       logger.success("🚀 Using WebSocket (WSS) provider");
-    } else {
+    } else; {
       // Fallback to HTTP
       this.provider = new ethers.JsonRpcProvider(rpcUrl || "");
       logger.info("Using HTTP RPC provider");
