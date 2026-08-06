@@ -6,7 +6,7 @@
  */
 
 import { ethers } from "ethers";
-import { config } from "../../src/config";
+import { config } from "../src/config";
 
 // Uniswap V2 Factory ABI (minimal - just what we need)
 const FACTORY_ABI = [
@@ -32,7 +32,12 @@ const ERC20_ABI = [
 
 // Known Uniswap V2 deployments on Sepolia
 const UNISWAP_V2_FACTORY = "0x7E0987E5b3a30e3f2828572Bc1A9B8B1991BCN1"; // May not exist
-const UNISWAP_V2_ROUTER = config.dexes.uniswapV2Router;
+// Support both flat string map (legacy) and object map (multichain ChainConfig)
+const UNISWAP_V2_ROUTER: string =
+  (config as any).dexes?.uniswapV2Router ||
+  (config as any).dexes?.quickswap?.router ||
+  (config as any).dexes?.quickswap ||
+  "0xa5E0829CaCEd8fFDD4De3c4aDdD94b5B480A832"; // QuickSwap fallback
 
 // Backup: We'll check if Uniswap V2 exists, otherwise guide user to create pools
 
@@ -176,12 +181,16 @@ async function checkSpecificPairs(provider: ethers.Provider) {
   console.log("🔍 Checking Specific Token Pairs on Sepolia");
   console.log("═══════════════════════════════════════════════════════════\n");
   
+  const tokens = (config as any).tokens || {};
   const pairs = [
-    { name: "WETH/USDC", token0: config.tokens.WETH, token1: config.tokens.USDC },
-    { name: "WETH/DAI", token0: config.tokens.WETH, token1: config.tokens.DAI },
-    { name: "WETH/LINK", token0: config.tokens.WETH, token1: config.tokens.LINK },
-    { name: "USDC/DAI", token0: config.tokens.USDC, token1: config.tokens.DAI },
-  ];
+    { name: "WETH/USDC", token0: tokens.WETH, token1: tokens.USDC },
+    { name: "WETH/DAI", token0: tokens.WETH, token1: tokens.DAI },
+    // LINK is not present on every chain's token map – only include when available
+    ...(tokens.LINK
+      ? [{ name: "WETH/LINK", token0: tokens.WETH, token1: tokens.LINK }]
+      : []),
+    { name: "USDC/DAI", token0: tokens.USDC, token1: tokens.DAI },
+  ].filter((p) => p.token0 && p.token1);
   
   // Try multiple factory addresses (different DEX deployments on Sepolia)
   const factories = [
@@ -219,8 +228,17 @@ async function main() {
   console.log("║                                                            ║");
   console.log("╚════════════════════════════════════════════════════════════╝\n");
   
-  // Connect to Sepolia
-  const provider = new ethers.JsonRpcProvider(config.network.rpcUrl);
+  // Connect to Sepolia (support both config.network.rpcUrl and config.rpcUrls.http)
+  const rpcUrl =
+    (config as any).network?.rpcUrl ||
+    (config as any).rpcUrls?.http ||
+    process.env.SEPOLIA_RPC_URL ||
+    process.env.POLYGON_RPC_URL ||
+    "";
+  if (!rpcUrl) {
+    throw new Error("No RPC URL configured");
+  }
+  const provider = new ethers.JsonRpcProvider(rpcUrl);
   const network = await provider.getNetwork();
   
   console.log(`Connected to: ${network.name} (Chain ID: ${network.chainId})\n`);
