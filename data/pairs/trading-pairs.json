@@ -65,28 +65,28 @@
       "name": "WMATIC/LINK",
       "token0": "WMATIC",
       "token1": "LINK",
-      "enabled": true,
+      "enabled": false,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
       "name": "WMATIC/AAVE",
       "token0": "WMATIC",
       "token1": "AAVE",
-      "enabled": true,
+      "enabled": false,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
       "name": "WMATIC/UNI",
       "token0": "WMATIC",
       "token1": "UNI",
-      "enabled": true,
+      "enabled": false,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
       "name": "WMATIC/CRV",
       "token0": "WMATIC",
       "token1": "CRV",
-      "enabled": true,
+      "enabled": false,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
@@ -100,35 +100,35 @@
       "name": "WMATIC/BAL",
       "token0": "WMATIC",
       "token1": "BAL",
-      "enabled": true,
+      "enabled": false,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
       "name": "WMATIC/COMP",
       "token0": "WMATIC",
       "token1": "COMP",
-      "enabled": true,
+      "enabled": false,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
       "name": "WMATIC/MKR",
       "token0": "WMATIC",
       "token1": "MKR",
-      "enabled": true,
+      "enabled": false,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
       "name": "WMATIC/SNX",
       "token0": "WMATIC",
       "token1": "SNX",
-      "enabled": true,
+      "enabled": false,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
       "name": "WMATIC/YFI",
       "token0": "WMATIC",
       "token1": "YFI",
-      "enabled": true,
+      "enabled": false,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
@@ -233,14 +233,14 @@
       "name": "WMATIC/renBTC",
       "token0": "WMATIC",
       "token1": "renBTC",
-      "enabled": true,
+      "enabled": false,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
       "name": "WMATIC/tBTC",
       "token0": "WMATIC",
       "token1": "tBTC",
-      "enabled": true,
+      "enabled": false,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
@@ -324,14 +324,14 @@
       "name": "WMATIC/sETH",
       "token0": "WMATIC",
       "token1": "sETH",
-      "enabled": true,
+      "enabled": false,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
       "name": "WMATIC/QUICK",
       "token0": "WMATIC",
       "token1": "QUICK",
-      "enabled": true,
+      "enabled": false,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
@@ -359,14 +359,14 @@
       "name": "WMATIC/CVX",
       "token0": "WMATIC",
       "token1": "CVX",
-      "enabled": true,
+      "enabled": false,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
       "name": "WMATIC/BIFI",
       "token0": "WMATIC",
       "token1": "BIFI",
-      "enabled": true,
+      "enabled": false,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
@@ -660,21 +660,21 @@
       "name": "WETH/BAL",
       "token0": "WETH",
       "token1": "BAL",
-      "enabled": true,
+      "enabled": false,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
       "name": "WETH/COMP",
       "token0": "WETH",
       "token1": "COMP",
-      "enabled": true,
+      "enabled": false,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
       "name": "WETH/MKR",
       "token0": "WETH",
       "token1": "MKR",
-      "enabled": true,
+      "enabled": false,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
@@ -695,7 +695,7 @@
       "name": "WETH/MATIC",
       "token0": "WETH",
       "token1": "MATIC",
-      "enabled": true,
+      "enabled": false,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
@@ -786,7 +786,7 @@
       "name": "WETH/WBNB",
       "token0": "WETH",
       "token1": "WBNB",
-      "enabled": false,
+      "enabled": true,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
@@ -1080,7 +1080,7 @@
       "name": "WETH/LDO",
       "token0": "WETH",
       "token1": "LDO",
-      "enabled": false,
+      "enabled": true,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
@@ -1157,7 +1157,7 @@
       "name": "USDC/USDT",
       "token0": "USDC",
       "token1": "USDT",
-      "enabled": false,
+      "enabled": true,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
@@ -2858,14 +2858,14 @@
       "name": "WBTC/YFI",
       "token0": "WBTC",
       "token1": "YFI",
-      "enabled": false,
+      "enabled": true,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
       "name": "WBTC/MATIC",
       "token0": "WBTC",
       "token1": "MATIC",
-      "enabled": false,
+      "enabled": true,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
@@ -2879,7 +2879,7 @@
       "name": "WBTC/SAND",
       "token0": "WBTC",
       "token1": "SAND",
-      "enabled": false,
+      "enabled": true,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
@@ -2900,7 +2900,7 @@
       "name": "WBTC/BNB",
       "token0": "WBTC",
       "token1": "BNB",
-      "enabled": false,
+      "enabled": true,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
@@ -2914,7 +2914,7 @@
       "name": "WBTC/AVAX",
       "token0": "WBTC",
       "token1": "AVAX",
-      "enabled": false,
+      "enabled": true,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
@@ -2956,21 +2956,21 @@
       "name": "WBTC/WBNB",
       "token0": "WBTC",
       "token1": "WBNB",
-      "enabled": false,
+      "enabled": true,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
       "name": "WBTC/renBTC",
       "token0": "WBTC",
       "token1": "renBTC",
-      "enabled": false,
+      "enabled": true,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
       "name": "WBTC/tBTC",
       "token0": "WBTC",
       "token1": "tBTC",
-      "enabled": false,
+      "enabled": true,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
@@ -3047,7 +3047,7 @@
       "name": "WBTC/sBTC",
       "token0": "WBTC",
       "token1": "sBTC",
-      "enabled": false,
+      "enabled": true,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
@@ -3215,7 +3215,7 @@
       "name": "WBTC/SHIB",
       "token0": "WBTC",
       "token1": "SHIB",
-      "enabled": false,
+      "enabled": true,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
@@ -3369,7 +3369,7 @@
       "name": "LINK/MKR",
       "token0": "LINK",
       "token1": "MKR",
-      "enabled": false,
+      "enabled": true,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
@@ -3488,14 +3488,14 @@
       "name": "LINK/renBTC",
       "token0": "LINK",
       "token1": "renBTC",
-      "enabled": false,
+      "enabled": true,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
       "name": "LINK/tBTC",
       "token0": "LINK",
       "token1": "tBTC",
-      "enabled": false,
+      "enabled": true,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
@@ -3775,7 +3775,7 @@
       "name": "LINK/LDO",
       "token0": "LINK",
       "token1": "LDO",
-      "enabled": false,
+      "enabled": true,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
@@ -3880,14 +3880,14 @@
       "name": "AAVE/COMP",
       "token0": "AAVE",
       "token1": "COMP",
-      "enabled": false,
+      "enabled": true,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
       "name": "AAVE/MKR",
       "token0": "AAVE",
       "token1": "MKR",
-      "enabled": false,
+      "enabled": true,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
@@ -3901,7 +3901,7 @@
       "name": "AAVE/YFI",
       "token0": "AAVE",
       "token1": "YFI",
-      "enabled": false,
+      "enabled": true,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
@@ -4510,7 +4510,7 @@
       "name": "UNI/WBNB",
       "token0": "UNI",
       "token1": "WBNB",
-      "enabled": false,
+      "enabled": true,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
@@ -4524,7 +4524,7 @@
       "name": "UNI/tBTC",
       "token0": "UNI",
       "token1": "tBTC",
-      "enabled": false,
+      "enabled": true,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
