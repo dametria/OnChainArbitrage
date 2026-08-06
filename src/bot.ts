@@ -77,20 +77,6 @@ class ArbitrageBot {
       throw new Error("config.network.rpcUrl must resolve to a non-empty string");
     }
 
-    if (url.startsWith("wss://")) {
-      this.wssUrl = url;
-      this.rpcUrl = url.replace(/^wss:///, "https://");
-      this.initProvider(true);
-    } else if (url.startsWith("ws://")) {
-      this.wssUrl = url;
-      this.rpcUrl = url.replace(/^ws:///, "http://");
-      this.initProvider(true);
-    } else {
-      this.rpcUrl = url;
-      this.initProvider(false);
-    }
-  }
-
   private initProvider(useWebSocket: boolean) {
     if (useWebSocket && this.wssUrl) {
       try {
