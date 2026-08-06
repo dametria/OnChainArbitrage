@@ -68,7 +68,7 @@ class ArbitrageBot {
   // WebSocket path
 } else if (typeof rpcUrl === "string" && rpcUrl.startsWith("http")) {
   // HTTP path
-} else {
+} else;
   throw new Error(`Invalid rpcUrl: expected string, got ${typeof rpcUrl}`);
 };
 
