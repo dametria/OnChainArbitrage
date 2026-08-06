@@ -60,34 +60,113 @@ class ArbitrageBot {
   private stats: BotStats;
   private monitoringInterval: NodeJS.Timeout | null = null;
   private reconnectTimer: NodeJS.Timeout | null = null;
+  private reconnectDelayMs = 3000;
+  private rpcUrl!: string;
+  private wssUrl: string | null = null;
 
   constructor() {
-    // Initialize provider (prefer WSS from .env via config.network.rpcUrl)
-    const rpcUrl = ethers.JsonRpcProvider;
+    // Read from your actual config value, not ethers.JsonRpcProvider
+    const rpcConfig = config.network.rpcUrl;
 
-    const url = typeof rpcUrl === "string" ? rpcUrl : rpcUrl?.url ?? rpcUrl?.wss ?? rpcUrl?.http;
+    const url =
+      typeof rpcConfig === "string"
+        ? rpcConfig
+        : rpcConfig?.url ?? rpcConfig?.wss ?? rpcConfig?.http;
 
-if (typeof url !== "string") {
-  throw new Error("rpcUrl must be a string");
-}
+    if (typeof url !== "string" || !url.trim()) {
+      throw new Error("config.network.rpcUrl must resolve to a non-empty string");
+    }
 
-if (url.startsWith("wss://")) {
-  // ...
-}
-
-      // Optional connection logging
-this.provider.on("block", (blockNumber: number) => {
-  if (blockNumber % 100 === 0) {
-    logger.info(`📡 WSS connected | Block: ${blockNumber}`);
+    if (url.startsWith("wss://")) {
+      this.wssUrl = url;
+      this.rpcUrl = url.replace(/^wss:///, "https://");
+      this.initProvider(true);
+    } else if (url.startsWith("ws://")) {
+      this.wssUrl = url;
+      this.rpcUrl = url.replace(/^ws:///, "http://");
+      this.initProvider(true);
+    } else {
+      this.rpcUrl = url;
+      this.initProvider(false);
+    }
   }
-});
 
-this.provider.on("error", (error: any) => {
-  logger.error("WebSocket error:", error?.message || error);
-});
-else {
-logger.success("🚀 Using WebSocket (WSS) provider");
-} 
+  private initProvider(useWebSocket: boolean) {
+    if (useWebSocket && this.wssUrl) {
+      try {
+        const wsProvider = new ethers.WebSocketProvider(this.wssUrl);
+        this.provider = wsProvider;
+
+        logger.success("🚀 Using WebSocket (WSS) provider");
+
+        wsProvider.on("block", (blockNumber: number) => {
+          if (blockNumber % 100 === 0) {
+            logger.info(`📡 WSS connected | Block: ${blockNumber}`);
+          }
+        });
+
+        wsProvider.on("error", (error: unknown) => {
+          const message =
+            error instanceof Error ? error.message : String(error);
+
+          logger.error("WebSocket error:", message);
+        });
+
+        wsProvider.on("debug", (info: unknown) => {
+          logger.debug?.("WebSocket debug:", info);
+        });
+
+        const socket = (wsProvider as any)._websocket;
+        if (socket && typeof socket.on === "function") {
+          socket.on("close", (code: number) => {
+            logger.error(`WebSocket closed with code ${code}`);
+            this.scheduleReconnect();
+          });
+
+          socket.on("error", (error: unknown) => {
+            const message =
+              error instanceof Error ? error.message : String(error);
+
+            logger.error("Underlying WebSocket error:", message);
+          });
+        }
+
+        return;
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : String(error);
+
+        logger.error(`WSS init failed, falling back to HTTP: ${message}`);
+      }
+    }
+
+    this.provider = new ethers.JsonRpcProvider(this.rpcUrl);
+    logger.info("🌐 Using HTTP RPC provider");
+  }
+
+  private scheduleReconnect() {
+    if (this.reconnectTimer) return;
+
+    logger.warn(`Reconnecting WebSocket in ${this.reconnectDelayMs}ms...`);
+
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+
+      try {
+        const current = this.provider as any;
+        current?.removeAllListeners?.();
+        current?.destroy?.();
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : String(error);
+
+        logger.warn(`Provider cleanup warning: ${message}`);
+      }
+
+      this.initProvider(true);
+    }, this.reconnectDelayMs);
+  }
+}
     // Initialize wallet
     this.wallet = new ethers.Wallet(config.wallet.privateKey, this.provider);
 
