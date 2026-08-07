@@ -307,10 +307,10 @@ export class TradeExecutor {
     );
 
     // Convert USD size → token amount
-    let tokenPrice = 1.0;
-    const token0Symbol = opportunity.pair.token0.toUpperCase();
-    const token1Symbol = opportunity.pair.token1.toUpperCase();
-    const stablecoins = [
+let tokenPrice = 1.0;
+const token0Symbol = opportunity.pair.token0.toUpperCase();
+const token1Symbol = opportunity.pair.token1.toUpperCase();
+const stablecoins = [
       "USDC",
       "USDT",
       "DAI",
@@ -319,40 +319,78 @@ export class TradeExecutor {
       "TUSD",
       "BUSD",
     ];
+.
 
-    const isStablecoin0 = stablecoins.includes(token0Symbol);
-    const isStablecoin1 = stablecoins.includes(token1Symbol);
+const isStablecoin0 = stablecoins.includes(token0Symbol);
+const isStablecoin1 = stablecoins.includes(token1Symbol);
 
-    if (!isStablecoin0 && !isStablecoin1) {
-      tokenPrice = config.network.name === "polygon" ? 0.4 : 2000;
-      logger.debug(`  💱 Using native token price: \[ {tokenPrice}`);
-    } else {
-      logger.debug(
-        `  💱 Using stablecoin price: $1.00 (\( {token0Symbol}/ \){token1Symbol})`
-      );
-    }
+if (!isStablecoin0 && !isStablecoin1) {
+  // Neither side is a stable – use a rough price for the asset we care about
+  tokenPrice = this.estimateToken0PriceUsd(opportunity);
+  logger.debug(`  💱 Using non-stable token price: \[ {tokenPrice}`);
+} else {
+  logger.debug(
+    `  💱 Using stablecoin price: $1.00 (\( {token0Symbol}/ \){token1Symbol})`
+  );
+}
 
-    const tokenAmount = tradeSize / tokenPrice;
-    logger.debug(
-      `  🔢 Token amount: ${tokenAmount.toFixed(2)} tokens ( \]{tradeSize.toFixed(2)} / \[ {tokenPrice})`
-    );
+const tokenAmount = tradeSize / tokenPrice;
+logger.debug(
+  `  🔢 Token amount: \( {tokenAmount.toFixed(2)} tokens ( \){tradeSize.toFixed(2)} / \]{tokenPrice})`
+);
 
-    return ethers.parseEther(tokenAmount.toString());
+return ethers.parseEther(tokenAmount.toString());
+      /** Rough USD price of the flash-loaned (token0) asset – network-agnostic */
+private estimateToken0PriceUsd(opportunity: ArbitrageOpportunity): number {
+  const symbol = opportunity.pair.token0.toUpperCase();
+
+  // Stablecoins
+  const stablecoins = [
+    "USDC", "USDT", "DAI", "MAI", "FRAX", "TUSD", "BUSD"
+  ];
+  if (stablecoins.includes(symbol)) return 1.0;
+
+  // Common natives / wrapped natives (rough, update periodically)
+  const priceMap: Record<string, number> = {
+    // Polygon / POL
+    WMATIC: 0.4,
+    MATIC: 0.4,
+    POL: 0.4,
+
+    // Ethereum
+    WETH: 2000,
+    ETH: 2000,
+
+    // Bitcoin
+    WBTC: 60000,
+    BTC: 60000,
+
+    // BNB Chain
+    WBNB: 600,
+    BNB: 600,
+
+    // Base / Optimism / Arbitrum style (still ETH)
+    // already covered by WETH/ETH
+
+    // Avalanche
+    WAVAX: 30,
+    AVAX: 30,
+
+    // Fantom
+    WFTM: 0.5,
+    FTM: 0.5,
+  };
+
+  if (priceMap[symbol] !== undefined) {
+    return priceMap[symbol];
   }
 
-  /** Rough USD price of the flash-loaned (token0) asset */
-  private estimateToken0PriceUsd(opportunity: ArbitrageOpportunity): number {
-    const token0Symbol = opportunity.pair.token0.toUpperCase();
-    const stablecoins = ["USDC", "USDT", "DAI", "MAI", "FRAX", "TUSD", "BUSD"];
-    if (stablecoins.includes(token0Symbol)) return 1.0;
-    if (token0Symbol === "WMATIC" || token0Symbol === "MATIC" || token0Symbol === "POL") {
-      return 0.4;
-    }
-    if (token0Symbol === "WETH" || token0Symbol === "ETH") return 2000;
-    if (token0Symbol === "WBTC" || token0Symbol === "BTC") return 60000;
-    // Default: treat as \~native on polygon, else ETH-ish
-    return config.network.name === "polygon" ? 0.4 : 2000;
-  }
+  // Unknown token – conservative fallback + warning
+  logger.warn(
+    `  ⚠️ Unknown token symbol "${symbol}" – falling back to $1.00 for size calculation`
+  );
+  return 1.0;
+}
 
   // ─────────────────────────────────────────────
   // Profitability pre-check (rough, off-chain)
