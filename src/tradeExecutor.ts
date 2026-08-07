@@ -307,10 +307,14 @@ export class TradeExecutor {
     );
 
     // Convert USD size → token amount
-let tokenPrice = 1.0;
-const token0Symbol = opportunity.pair.token0.toUpperCase();
-const token1Symbol = opportunity.pair.token1.toUpperCase();
-const stablecoins = [
+  private usdToTokenAmount(
+    tradeSize: number,
+    opportunity: ArbitrageOpportunity
+  ): bigint {
+    let tokenPrice = 1.0;
+    const token0Symbol = opportunity.pair.token0.toUpperCase();
+    const token1Symbol = opportunity.pair.token1.toUpperCase();
+    const stablecoins = [
       "USDC",
       "USDT",
       "DAI",
@@ -318,74 +322,64 @@ const stablecoins = [
       "FRAX",
       "TUSD",
       "BUSD",
+      "USDE",
+      "USD1",
     ];
 
-const isStablecoin0 = stablecoins.includes(token0Symbol);
-const isStablecoin1 = stablecoins.includes(token1Symbol);
+    const isStablecoin0 = stablecoins.includes(token0Symbol);
+    const isStablecoin1 = stablecoins.includes(token1Symbol);
 
-if (!isStablecoin0 && !isStablecoin1) {
-  // Neither side is a stable – use a rough price for the asset we care about
-  tokenPrice = this.estimateToken0PriceUsd(opportunity);
-  logger.debug(`  💱 Using non-stable token price: \[ {tokenPrice}`);
-} else {
-  logger.debug(
-    `  💱 Using stablecoin price: $1.00 (\( {token0Symbol}/ \){token1Symbol})`
-  );
-}
+    if (!isStablecoin0 && !isStablecoin1) {
+      tokenPrice = this.estimateToken0PriceUsd(opportunity);
+      logger.debug(`  💱 Using non-stable token price: \[ {tokenPrice}`);
+    } else {
+      logger.debug(
+        `  💱 Using stablecoin price: $1.00 (\( {token0Symbol}/ \){token1Symbol})`
+      );
+    }
 
-const tokenAmount = tradeSize / tokenPrice;
-logger.debug(
-  `  🔢 Token amount: \( {tokenAmount.toFixed(2)} tokens ( \){tradeSize.toFixed(2)} / \]{tokenPrice})`
-);
+    const tokenAmount = tradeSize / tokenPrice;
+    logger.debug(
+      `  🔢 Token amount: \( {tokenAmount.toFixed(2)} tokens ( \){tradeSize.toFixed(2)} / \]{tokenPrice})`
+    );
 
-return ethers.parseEther(tokenAmount.toString());
-      /** Rough USD price of the flash-loaned (token0) asset – network-agnostic */
-private estimateToken0PriceUsd(opportunity: ArbitrageOpportunity): number {
-    const token0Symbol = opportunity.pair.token0.toUpperCase();
-    const stablecoins = ["USDC", "USDT", "DAI", "MAI", "FRAX", "TUSD", "BUSD"];
-    if (stablecoins.includes(token0Symbol)) return 1.0;
+    return ethers.parseEther(tokenAmount.toString());
+  }   // ← this closing brace is critical
 
-  // Common natives / wrapped natives (rough, update periodically)
-  const priceMap: Record<string, number> = {
-    // Polygon / POL
-    WMATIC: 0.4,
-    MATIC: 0.4,
-    POL: 0.4,
+  /** Rough USD price of the flash-loaned (token0) asset – network-agnostic */
+  private estimateToken0PriceUsd(opportunity: ArbitrageOpportunity): number {
+    const symbol = opportunity.pair.token0.toUpperCase();
 
-    // Ethereum
-    WETH: 2000,
-    ETH: 2000,
+    const stablecoins = [
+      "USDC", "USDT", "DAI", "MAI", "FRAX", "TUSD", "BUSD",
+    ];
+    if (stablecoins.includes(symbol)) return 1.0;
 
-    // Bitcoin
-    WBTC: 60000,
-    BTC: 60000,
+    const priceMap: Record<string, number> = {
+      WMATIC: 0.4,
+      MATIC: 0.4,
+      POL: 0.4,
+      WETH: 2000,
+      ETH: 2000,
+      WBTC: 60000,
+      BTC: 60000,
+      WBNB: 600,
+      BNB: 600,
+      WAVAX: 30,
+      AVAX: 30,
+      WFTM: 0.5,
+      FTM: 0.5,
+    };
 
-    // BNB Chain
-    WBNB: 600,
-    BNB: 600,
+    if (priceMap[symbol] !== undefined) {
+      return priceMap[symbol];
+    }
 
-    // Base / Optimism / Arbitrum style (still ETH)
-    // already covered by WETH/ETH
-
-    // Avalanche
-    WAVAX: 30,
-    AVAX: 30,
-
-    // Fantom
-    WFTM: 0.5,
-    FTM: 0.5,
-  };
-
-  if (priceMap[symbol] !== undefined) {
-    return priceMap[symbol];
+    logger.warn(
+      `  ⚠️ Unknown token symbol "${symbol}" – falling back to $1.00 for size calculation`
+    );
+    return 1.0;
   }
-
-  // Unknown token – conservative fallback + warning
-  logger.warn(
-    `  ⚠️ Unknown token symbol "${symbol}" – falling back to $1.00 for size calculation`
-  );
-  return 1.0;
-}
 
   // ─────────────────────────────────────────────
   // Profitability pre-check (rough, off-chain)
