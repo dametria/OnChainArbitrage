@@ -319,7 +319,6 @@ const stablecoins = [
       "TUSD",
       "BUSD",
     ];
-.
 
 const isStablecoin0 = stablecoins.includes(token0Symbol);
 const isStablecoin1 = stablecoins.includes(token1Symbol);
