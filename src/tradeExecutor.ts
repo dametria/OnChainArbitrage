@@ -341,13 +341,9 @@ logger.debug(
 return ethers.parseEther(tokenAmount.toString());
       /** Rough USD price of the flash-loaned (token0) asset – network-agnostic */
 private estimateToken0PriceUsd(opportunity: ArbitrageOpportunity): number {
-  const symbol = opportunity.pair.token0.toUpperCase();
-
-  // Stablecoins
-  const stablecoins = [
-    "USDC", "USDT", "DAI", "MAI", "FRAX", "TUSD", "BUSD"
-  ];
-  if (stablecoins.includes(symbol)) return 1.0;
+    const token0Symbol = opportunity.pair.token0.toUpperCase();
+    const stablecoins = ["USDC", "USDT", "DAI", "MAI", "FRAX", "TUSD", "BUSD"];
+    if (stablecoins.includes(token0Symbol)) return 1.0;
 
   // Common natives / wrapped natives (rough, update periodically)
   const priceMap: Record<string, number> = {
