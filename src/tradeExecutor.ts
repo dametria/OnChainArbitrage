@@ -322,8 +322,6 @@ export class TradeExecutor {
       "FRAX",
       "TUSD",
       "BUSD",
-      "USDE",
-      "USD1",
     ];
 
     const isStablecoin0 = stablecoins.includes(token0Symbol);
