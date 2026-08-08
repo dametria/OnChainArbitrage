@@ -30,7 +30,7 @@
       "name": "WMATIC/WETH",
       "token0": "WMATIC",
       "token1": "WETH",
-      "enabled": true,
+      "enabled": false,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
@@ -877,7 +877,7 @@
       "name": "WETH/sBTC",
       "token0": "WETH",
       "token1": "sBTC",
-      "enabled": false,
+      "enabled": true,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
@@ -1220,14 +1220,14 @@
       "name": "USDC/COMP",
       "token0": "USDC",
       "token1": "COMP",
-      "enabled": false,
+      "enabled": true,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
       "name": "USDC/MKR",
       "token0": "USDC",
       "token1": "MKR",
-      "enabled": false,
+      "enabled": true,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
@@ -2928,7 +2928,7 @@
       "name": "WBTC/TUSD",
       "token0": "WBTC",
       "token1": "TUSD",
-      "enabled": true,
+      "enabled": false,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
@@ -2977,7 +2977,7 @@
       "name": "WBTC/AXS",
       "token0": "WBTC",
       "token1": "AXS",
-      "enabled": false,
+      "enabled": true,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
@@ -2991,7 +2991,7 @@
       "name": "WBTC/IMX",
       "token0": "WBTC",
       "token1": "IMX",
-      "enabled": false,
+      "enabled": true,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
@@ -3054,7 +3054,7 @@
       "name": "WBTC/sETH",
       "token0": "WBTC",
       "token1": "sETH",
-      "enabled": false,
+      "enabled": true,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
@@ -3082,7 +3082,7 @@
       "name": "WBTC/LRC",
       "token0": "WBTC",
       "token1": "LRC",
-      "enabled": false,
+      "enabled": true,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
@@ -3152,7 +3152,7 @@
       "name": "WBTC/AMPL",
       "token0": "WBTC",
       "token1": "AMPL",
-      "enabled": false,
+      "enabled": true,
       "reason": "Contains top 15 token (MEV dominated)"
     },
     {
