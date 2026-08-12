@@ -17,12 +17,12 @@
 
 import { ethers } from "ethers";
 import { config, validateConfig } from "./config.ts";
-import { logger } from "./logger";
-import { PriceMonitor } from "./priceMonitor";
-import { TradeExecutor } from "./tradeExecutor";
-import type { ArbitrageOpportunity } from "./priceMonitor";
-import { getLogger, stopLogger } from "./dataLogger";
-import { startScheduler, stopScheduler, getScheduler } from "./pairScheduler";
+import { logger } from "./logger.ts";
+import { PriceMonitor } from "./priceMonitor.ts";
+import { TradeExecutor } from "./tradeExecutor.ts";
+import type { ArbitrageOpportunity } from "./priceMonitor.ts";
+import { getLogger, stopLogger } from "./dataLogger.ts";
+import { startScheduler, stopScheduler, getScheduler } from "./pairScheduler.ts";
 
 // ============================================================================
 // BOT STATISTICS
