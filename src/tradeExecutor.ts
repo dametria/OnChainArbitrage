@@ -525,6 +525,8 @@ export class TradeExecutor {
         const buySimType = buyDexType === 'uniswapV3' ? 'v3' : 'v2';
         const sellSimType = sellDexType === 'uniswapV3' ? 'v3' : 'v2';
         
+        // Note: gas estimate arg is accepted for signature compatibility but is
+        // excluded from the net-profit cost equation inside simulateArbitrageWithCosts
         const simulationResult = await simulateArbitrageWithCosts(
           this.provider,
           buyRouter,
@@ -533,7 +535,7 @@ export class TradeExecutor {
           opportunity.pair.token0Address,
           opportunity.pair.token1Address,
           config.trading.flashLoanFeeBps,
-          500000n, // Gas estimate
+          500000n, // ignored in cost equation
           buySimType,
           sellSimType,
           opportunity.buyDex.feeTier,
@@ -545,13 +547,12 @@ export class TradeExecutor {
           const lossAmount = ethers.formatEther(simulationResult.netProfit);
           const grossProfit = ethers.formatEther(simulationResult.grossProfit);
           const flashFee = ethers.formatEther(simulationResult.flashLoanFee);
-          const gasCost = ethers.formatEther(simulationResult.gasCost);
           
           logger.warning(`❌ [SIMULATION REJECTED] On-chain simulation predicts LOSS`);
           logger.warning(`   Net profit: ${lossAmount} tokens (${lossPercent}%)`);
           logger.warning(`   Gross profit: ${grossProfit} tokens`);
           logger.warning(`   Flash loan fee: ${flashFee} tokens`);
-          logger.warning(`   Gas cost: ${gasCost} tokens`);
+          logger.warning(`   Gas cost: excluded from equation`);
           logger.warning(`   Reason: Real slippage/price impact makes trade unprofitable`);
           
           // This is EXPECTED behavior - simulation working correctly
