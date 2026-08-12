@@ -17,7 +17,7 @@
 
 import { ethers } from "ethers";
 import { config, validateConfig } from "./config.ts";
-import { logger } from "./logger.ts";
+import { logger } from "./logger.js";
 import { PriceMonitor } from "./priceMonitor.ts";
 import { TradeExecutor } from "./tradeExecutor.ts";
 import type { ArbitrageOpportunity } from "./priceMonitor.ts";
