@@ -29,7 +29,6 @@ export interface SimulateArbitrageOptions {
   token0?: string;
   token1?: string;
   flashLoanFeeBps?: number;
-  estimatedGasUnits?: bigint;
   buyDexType?: SimDexType | string;
   sellDexType?: SimDexType | string;
   buyFeeTier?: number;
@@ -246,7 +245,8 @@ function isOptionsObject(arg: unknown): arg is SimulateArbitrageOptions {
 }
 
 /**
- * Simulates arbitrage and accounts for all costs (flash loan fee, gas, execution slippage).
+ * Simulates arbitrage and accounts for costs (flash loan fee, execution slippage).
+ * Gas cost is intentionally excluded from the net-profit equation.
  *
  * Supports BOTH:
  *  - options object (preferred, used by tradeExecutor)
@@ -260,7 +260,7 @@ export async function simulateArbitrageWithCosts(
   token0?: string,
   token1?: string,
   flashLoanFeeBps: number = 5,
-  estimatedGasUnits: bigint = 500000n,
+  _estimatedGasUnits: bigint = 500000n, // kept for signature compatibility; ignored in cost equation
   buyDexType: SimDexType | string = 'v2',
   sellDexType: SimDexType | string = 'v2',
   buyFee?: number,
@@ -284,7 +284,6 @@ export async function simulateArbitrageWithCosts(
   let _token0: string;
   let _token1: string;
   let _flashLoanFeeBps: number;
-  let _estimatedGasUnits: bigint;
   let _buyDexType: SimDexType;
   let _sellDexType: SimDexType;
   let _buyFee: number | undefined;
@@ -300,7 +299,6 @@ export async function simulateArbitrageWithCosts(
     _token0 = o.tokenIn ?? o.token0 ?? '';
     _token1 = o.tokenOut ?? o.token1 ?? '';
     _flashLoanFeeBps = o.flashLoanFeeBps ?? config.trading?.flashLoanFeeBps ?? 5;
-    _estimatedGasUnits = o.estimatedGasUnits ?? 500000n;
     _buyDexType = normalizeDexType(o.buyDexType);
     _sellDexType = normalizeDexType(o.sellDexType);
     _buyFee = o.buyFeeTier ?? o.buyFee;
@@ -314,7 +312,6 @@ export async function simulateArbitrageWithCosts(
     _token0 = token0!;
     _token1 = token1!;
     _flashLoanFeeBps = flashLoanFeeBps;
-    _estimatedGasUnits = estimatedGasUnits;
     _buyDexType = normalizeDexType(String(buyDexType));
     _sellDexType = normalizeDexType(String(sellDexType));
     _buyFee = buyFee;
@@ -347,15 +344,14 @@ export async function simulateArbitrageWithCosts(
 
   const flashLoanFee = (_amountIn * BigInt(_flashLoanFeeBps)) / 10000n;
 
-  const feeData = await provider.getFeeData();
-  const gasPrice = feeData.gasPrice || feeData.maxFeePerGas || 0n;
-  const gasCost = _estimatedGasUnits * gasPrice;
+  // Gas is excluded from the cost equation (estimated/actual gas amount is not a variable here)
+  const gasCost = 0n;
 
   const executionSlippageBps = getExecutionSlippageBps();
   const executionSlippageCost = (_amountIn * BigInt(executionSlippageBps)) / 10000n;
 
   const grossProfit = simulation.profit;
-  const totalCosts = flashLoanFee + gasCost + executionSlippageCost;
+  const totalCosts = flashLoanFee + executionSlippageCost;
   const netProfit = grossProfit - totalCosts;
   const netProfitPercent = (Number(netProfit) * 100) / Number(_amountIn);
   const profitable = netProfit > 0n;
@@ -369,14 +365,14 @@ export async function simulateArbitrageWithCosts(
     if (grossProfit <= 0n) {
       reason = `Gross swap profit negative (${ethers.formatEther(grossProfit)} tokens)`;
     } else {
-      reason = `Net after fees/gas/slippage negative (net=${ethers.formatEther(netProfit)}, costs=${ethers.formatEther(totalCosts)})`;
+      reason = `Net after fees/slippage negative (net=${ethers.formatEther(netProfit)}, costs=${ethers.formatEther(totalCosts)})`;
     }
   }
 
   logger.info(`💰 Cost breakdown:`);
   logger.info(`  Gross profit: ${ethers.formatEther(grossProfit)}`);
   logger.info(`  Flash loan fee: ${ethers.formatEther(flashLoanFee)} (${_flashLoanFeeBps} bps)`);
-  logger.info(`  Gas cost: ${ethers.formatEther(gasCost)} native`);
+  logger.info(`  Gas cost: excluded from equation`);
   logger.info(
     `  Execution slippage buffer: ${ethers.formatEther(executionSlippageCost)} (${executionSlippageBps} bps)`
   );
