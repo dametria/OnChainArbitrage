@@ -260,7 +260,7 @@ async function verifyPairsOnChain(
 
   // Simple price estimates (you can improve this with real price feeds)
   const priceEstimates: Record<string, number> = {
-    WETH: 2500, WBTC: 45000, WBNB: 300, WMATIC: 0.8,
+    WETH: 1890, WBTC: 65000, WBNB: 611, WMATIC: 0.07,
     USDC: 1, USDT: 1, DAI: 1, BUSD: 1,
   };
 
