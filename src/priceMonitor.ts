@@ -859,7 +859,7 @@ async scanForOpportunities(): Promise<ArbitrageOpportunity[]> {
   this.currentPairIndex = (this.currentPairIndex + batchSize) % this.pairs.length;
 
   const pairNames = batch.map((p) => p.name).join(", ");
-  logger.debug(
+  logger.info(
     `Scanning batch of \( {batch.length}/ \){this.pairs.length} pairs ` +
     `(start index ${startIdx}): ${pairNames}`
   );
